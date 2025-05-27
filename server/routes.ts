@@ -236,6 +236,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(MAGNETIC_CODES);
   });
 
+  // Knowledge base upload endpoint
+  app.post("/api/knowledge/upload", async (req, res) => {
+    try {
+      // For now, we'll simulate the upload and return success
+      // In a real implementation, this would process the file and add it to the assistant
+      const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      res.json({
+        id: fileId,
+        message: "Arquivo carregado com sucesso",
+        status: "processed"
+      });
+    } catch (error) {
+      console.error('Error uploading knowledge file:', error);
+      res.status(500).json({ message: "Erro ao carregar arquivo" });
+    }
+  });
+
+  // Knowledge base delete endpoint
+  app.delete("/api/knowledge/:fileId", async (req, res) => {
+    try {
+      const { fileId } = req.params;
+      
+      // For now, we'll simulate the deletion
+      // In a real implementation, this would remove the file from the assistant
+      
+      res.json({
+        message: "Arquivo removido com sucesso",
+        fileId
+      });
+    } catch (error) {
+      console.error('Error deleting knowledge file:', error);
+      res.status(500).json({ message: "Erro ao remover arquivo" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

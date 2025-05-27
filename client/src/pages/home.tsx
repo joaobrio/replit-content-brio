@@ -1,7 +1,9 @@
 import { ContentGenerator } from '@/components/content-generator';
 import { HistorySidebar } from '@/components/history-sidebar';
+import { KnowledgeUpload } from '@/components/knowledge-upload';
 import { Clock, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Home() {
   return (
@@ -49,7 +51,20 @@ export default function Home() {
           
           {/* Main Content Area */}
           <div className="lg:col-span-3">
-            <ContentGenerator />
+            <Tabs defaultValue="generator" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="generator">Gerador de Conteúdo</TabsTrigger>
+                <TabsTrigger value="knowledge">Base de Conhecimento</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="generator">
+                <ContentGenerator />
+              </TabsContent>
+              
+              <TabsContent value="knowledge">
+                <KnowledgeUpload />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
