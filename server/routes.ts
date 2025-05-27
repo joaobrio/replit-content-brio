@@ -11,6 +11,9 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "default_key",
 });
 
+// BRIO.IA Assistant ID
+const BRIO_ASSISTANT_ID = "asst_wtGq8egImXq1UA76Gz483ksG";
+
 // 8 Códigos Magnéticos mapping
 const MAGNETIC_CODES = {
   'Concordar & Contrastar': {
@@ -67,45 +70,55 @@ function selectBestCode(objective: string): string[] {
   return codeMapping[objective as keyof typeof codeMapping] || codeMapping['captar'];
 }
 
-// Generate content using OpenAI GPT-4o
-async function generateContentWithOpenAI(topic: string, code: string, objective: string): Promise<ContentVariation> {
+// Generate content using BRIO.IA Assistant
+async function generateContentWithBrioAssistant(topic: string, code: string, objective: string): Promise<ContentVariation> {
   const codeInfo = MAGNETIC_CODES[code as keyof typeof MAGNETIC_CODES];
   
-  const systemPrompt = `Você é o Agente BRIO.IA, especialista em criar conteúdo magnético para profissionais de saúde.
-
-Você deve criar conteúdo sobre "${topic}" usando o código magnético "${code}".
-
-OBJETIVO: ${objective}
+  try {
+    // Create a thread for this conversation
+    const thread = await openai.beta.threads.create();
+    
+    // Send the message to the assistant
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: `Crie conteúdo magnético sobre "${topic}" usando o código "${code}" com objetivo "${objective}". 
 
 ESTRUTURA DO CÓDIGO "${code}": ${codeInfo.structure}
 
 INSTRUÇÕES:
-1. Crie um texto de 100-200 palavras em português brasileiro
-2. Use linguagem profissional mas acessível
-3. Aplique rigorosamente a estrutura do código magnético
-4. Mantenha o foco em saúde e medicina
-5. Inclua um CTA sutil se apropriado
-6. Use tom ${objective === 'captar' ? 'curioso e intrigante' : objective === 'conectar' ? 'empático e pessoal' : objective === 'convencer' ? 'autoritativo e baseado em evidências' : 'persuasivo e orientado à ação'}
-
-Responda APENAS com o conteúdo, sem explicações adicionais.`;
-
-  try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 500,
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content: `Crie conteúdo sobre: ${topic}`
-        }
-      ]
+- 100-200 palavras em português brasileiro
+- Aplique rigorosamente a estrutura do código magnético
+- Foco em profissionais de saúde
+- Tom ${objective === 'captar' ? 'curioso e intrigante' : objective === 'conectar' ? 'empático e pessoal' : objective === 'convencer' ? 'autoritativo e baseado em evidências' : 'persuasivo e orientado à ação'}
+- Responda APENAS com o conteúdo final`
     });
 
-    const content = response.choices[0].message.content || '';
+    // Run the assistant
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: BRIO_ASSISTANT_ID
+    });
+
+    // Wait for completion
+    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    
+    while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    }
+
+    if (runStatus.status !== 'completed') {
+      throw new Error(`Assistant run failed with status: ${runStatus.status}`);
+    }
+
+    // Get the messages
+    const messages = await openai.beta.threads.messages.list(thread.id);
+    const lastMessage = messages.data[0];
+    
+    if (lastMessage.role !== 'assistant' || !lastMessage.content[0] || lastMessage.content[0].type !== 'text') {
+      throw new Error('Invalid response from assistant');
+    }
+
+    const content = lastMessage.content[0].text.value;
     const wordCount = content.split(' ').length;
     
     return {
@@ -116,7 +129,7 @@ Responda APENAS com o conteúdo, sem explicações adicionais.`;
       tone: getToneForObjective(objective)
     };
   } catch (error) {
-    console.error('Error generating content with OpenAI:', error);
+    console.error('Error generating content with BRIO Assistant:', error);
     throw new Error('Falha ao gerar conteúdo. Verifique a configuração da API.');
   }
 }
@@ -159,7 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const code of selectedCodes) {
         try {
-          const variation = await generateContentWithOpenAI(topic, code, objective);
+          const variation = await generateContentWithBrioAssistant(topic, code, objective);
           variations.push(variation);
           totalTokens += 300; // Estimate tokens used
         } catch (error) {
