@@ -1,0 +1,94 @@
+# Prompt para Replit (Ghostwriter) – MVP BRIO.IA (Parte 1)
+
+> **Copie e cole o texto abaixo no chat do Ghostwriter (Replit AI)**
+> Ele orienta a geração automática de um *starter project* que cobre a **Primeira Parte do MVP**: o **Gerador de Conteúdo com os 8 Códigos Magnéticos**.
+
+---
+
+## 1. Contexto de Negócio
+
+Você está construindo o **BRIO.IA**, uma plataforma SaaS que ajuda **marcas pessoais — de prestadores de serviços a CEOs —** a criar **conteúdo magnético** usando o **Método BRIO**.
+
+* **Pilares do Método BRIO**: Essência · Execução · Expressão.
+* **8 Códigos Magnéticos** (Concordar & Contrastar, Atirar Pedras, Confirmação de Suspeitas, História Pessoal, Solução Única, Elefante na Sala, Ruptura Cognitiva, Vitória Transformadora).
+* **Objetivo desta etapa**: permitir que o usuário gere rapidamente 3 variações de conteúdo, escolhendo (ou recebendo sugestão de) um dos 8 códigos.
+
+## 2. Resultado Esperado
+
+Crie um **starter project** que rode diretamente no **Replit (Workspace Nix)** **sem Docker**.
+*O projeto deve iniciar com **`** configurado no arquivo **`**.*
+A base deve estar pronta para futuro deploy em Vercel (frontend) e Railway (backend).
+
+### Funcionalidades obrigatórias
+
+1. **Chat‑like Content Generator**
+
+   * Campo de input para o usuário descrever o tema que deseja.
+   * Botão opcional “Selecionar Objetivo” com 4 opções (Captar, Conectar, Convencer, Converter).
+   * Algoritmo `selectBestCode()` que sugere os 3 códigos mais adequados ao objetivo (use regras do blueprint).
+   * Para cada solicitação, gere **3 variações** de texto e identifique qual código foi usado em cada variação.
+2. **Exibição de Resultado**
+
+   * Cards com: Ícone + Nome do Código + Conteúdo gerado + CTA “Copiar”.
+   * Badge "Código: {nome}" no canto superior direito.
+3. **Histórico em Memória**
+
+   * Lista lateral com as últimas 10 gerações (id, tema, código).
+
+### Requisitos Técnicos
+
+| Camada   | Tecnologia                                   | Observações                                                                                                                                           |
+| -------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend | **Next.js 14 (App Router)** + **TypeScript** | UI: **Tailwind CSS** + **shadcn/ui**.                                                                                                                 |
+| State    | **Zustand** + React Query                    |                                                                                                                                                       |
+| Backend  | **Node.js + Express**                        | Rodar via `npm run dev`; expor rota `POST /ai/generate`. *Sem Docker.*                                                                                |
+| IA       | **Claude 3 Sonnet** (Anthropic SDK)          | Definir chave via **Replit Secrets** → `ANTHROPIC_API_KEY`.                                                                                           |
+| ORM/DB   | **Prisma + SQLite** (dev)                    | Armazenamento local sujeito a reset quando o Repl hibernar; README deve explicar como apontar para **PostgreSQL Railway/Supabase** para persistência. |
+
+### Arquivos/Configurações Específicos do Replit
+
+* \`\`
+
+  ```
+  run = "npm run dev"
+  ```
+* \`\` (opcional) alinhado a Node 18.
+* **Secrets**
+
+  * `ANTHROPIC_API_KEY=xxxx`
+  * `DATABASE_URL="file:./dev.db"` (ou URL PostgreSQL)
+
+### Estrutura de Pastas
+
+```
+brio-ia/
+ ├─ .replit
+ ├─ app/              # Next.js
+ ├─ components/
+ ├─ lib/
+ ├─ backend/
+ │   ├─ src/
+ │   │   ├─ routes/ai.routes.ts
+ │   │   ├─ services/ai.service.ts
+ │   │   └─ data/magnetic-codes.ts
+ │   └─ prisma/schema.prisma
+ └─ README.md
+```
+
+## 3. Experiência de Usuário
+
+* **Layout clean** (cards arredondados 2xl, sombras suaves).
+* **Fluxo**: 1️⃣ Usuário descreve tema → 2️⃣ (Opcional) escolhe objetivo → 3️⃣ Recebe 3 variações → 4️⃣ Copia a melhor.
+* **Tempo‑alvo de resposta**: < 3 segundos.
+
+## 4. Critérios de Aceite
+
+*
+
+## 5. Extensões Futuras (comentadas no código)
+
+```markdown
+// TODO MVP‑Parte 2: Wizard MPMP, Template Library, Sistema de Projetos.
+```
+
+**Importante**: todo o código gerado deve estar em **português** (comentários e strings visíveis ao usuário).
