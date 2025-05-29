@@ -173,6 +173,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Save to storage
       const contentGeneration = await storage.createContentGeneration({
+        userId: 1, // For now, using default user ID
+        projectId: null, // Will be updated when projects are implemented
         topic,
         objective,
         variations: variations as any,

@@ -1,29 +1,96 @@
 import { 
-  contentGenerations, 
+  contentGenerations,
+  projects,
   type ContentGeneration, 
   type InsertContentGeneration,
+  type Project,
+  type InsertProject,
   type HistoryItem 
 } from "@shared/schema";
 
 export interface IStorage {
+  // Projects
+  createProject(project: InsertProject): Promise<Project>;
+  getProjects(userId: number): Promise<Project[]>;
+  getProject(id: number): Promise<Project | undefined>;
+  updateProject(id: number, project: Partial<InsertProject>): Promise<Project>;
+  deleteProject(id: number): Promise<void>;
+  
+  // Content Generations
   createContentGeneration(generation: InsertContentGeneration): Promise<ContentGeneration>;
-  getContentGenerations(limit?: number): Promise<ContentGeneration[]>;
-  getHistoryItems(limit?: number): Promise<HistoryItem[]>;
+  getContentGenerations(limit?: number, projectId?: number): Promise<ContentGeneration[]>;
+  getHistoryItems(limit?: number, projectId?: number): Promise<HistoryItem[]>;
 }
 
 export class MemStorage implements IStorage {
   private contentGenerations: Map<number, ContentGeneration>;
-  private currentId: number;
+  private projects: Map<number, Project>;
+  private currentContentId: number;
+  private currentProjectId: number;
 
   constructor() {
     this.contentGenerations = new Map();
-    this.currentId = 1;
+    this.projects = new Map();
+    this.currentContentId = 1;
+    this.currentProjectId = 1;
+  }
+
+  // Projects methods
+  async createProject(insertProject: InsertProject): Promise<Project> {
+    const id = this.currentProjectId++;
+    const project: Project = {
+      id,
+      ...insertProject,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.projects.set(id, project);
+    return project;
+  }
+
+  async getProjects(userId: number): Promise<Project[]> {
+    return Array.from(this.projects.values())
+      .filter(project => project.userId === userId)
+      .sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
+  }
+
+  async getProject(id: number): Promise<Project | undefined> {
+    return this.projects.get(id);
+  }
+
+  async updateProject(id: number, updateData: Partial<InsertProject>): Promise<Project> {
+    const existingProject = this.projects.get(id);
+    if (!existingProject) {
+      throw new Error('Project not found');
+    }
+
+    const updatedProject: Project = {
+      ...existingProject,
+      ...updateData,
+      updatedAt: new Date(),
+    };
+
+    this.projects.set(id, updatedProject);
+    return updatedProject;
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    this.projects.delete(id);
+    // Also remove associated content generations
+    for (const [genId, generation] of this.contentGenerations.entries()) {
+      if (generation.projectId === id) {
+        this.contentGenerations.delete(genId);
+      }
+    }
   }
 
   async createContentGeneration(insertGeneration: InsertContentGeneration): Promise<ContentGeneration> {
-    const id = this.currentId++;
+    const id = this.currentContentId++;
     const generation: ContentGeneration = {
       id,
+      userId: insertGeneration.userId,
+      projectId: insertGeneration.projectId || null,
       topic: insertGeneration.topic,
       objective: insertGeneration.objective || null,
       variations: insertGeneration.variations,
@@ -37,8 +104,9 @@ export class MemStorage implements IStorage {
     return generation;
   }
 
-  async getContentGenerations(limit: number = 10): Promise<ContentGeneration[]> {
+  async getContentGenerations(limit: number = 10, projectId?: number): Promise<ContentGeneration[]> {
     const generations = Array.from(this.contentGenerations.values())
+      .filter(gen => projectId ? gen.projectId === projectId : true)
       .sort((a, b) => {
         const aTime = a.createdAt?.getTime() || 0;
         const bTime = b.createdAt?.getTime() || 0;
@@ -49,16 +117,20 @@ export class MemStorage implements IStorage {
     return generations;
   }
 
-  async getHistoryItems(limit: number = 10): Promise<HistoryItem[]> {
-    const generations = await this.getContentGenerations(limit);
+  async getHistoryItems(limit: number = 10, projectId?: number): Promise<HistoryItem[]> {
+    const generations = await this.getContentGenerations(limit, projectId);
     
-    return generations.map(gen => ({
-      id: gen.id,
-      topic: gen.topic,
-      codes: gen.codesUsed as string[],
-      timestamp: gen.createdAt?.toISOString() || new Date().toISOString(),
-      objective: gen.objective || undefined,
-    }));
+    return generations.map(gen => {
+      const project = gen.projectId ? this.projects.get(gen.projectId) : null;
+      return {
+        id: gen.id,
+        topic: gen.topic,
+        codes: gen.codesUsed as string[],
+        timestamp: gen.createdAt?.toISOString() || new Date().toISOString(),
+        objective: gen.objective || undefined,
+        projectName: project?.name,
+      };
+    });
   }
 }
 
