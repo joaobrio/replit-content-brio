@@ -93,7 +93,7 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
 
   const COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'];
 
-  // Mock data for demonstration
+  // Demo data based on the dashboard image
   const mockMetrics: InstagramMetrics = {
     followers: 534100,
     engagement_rate: 1.8,
@@ -102,10 +102,10 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
     last_updated: new Date().toISOString()
   };
 
-  const mockPosts: PostPerformance[] = [
+  const demoPostsData: PostPerformance[] = [
     {
       id: '1',
-      caption: 'A obesidade não é apenas uma questão estética...',
+      caption: 'Obesidade (Amyrcretin): A revolução no tratamento da obesidade que você precisa conhecer...',
       likes: 5200,
       comments: 342,
       shares: 128,
@@ -118,7 +118,7 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
     },
     {
       id: '2',
-      caption: 'Viva la Vida: Como a música pode transformar...',
+      caption: 'Viva la Vida: Como transformei minha abordagem médica depois de quase desistir...',
       likes: 1200,
       comments: 89,
       shares: 34,
@@ -131,16 +131,42 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
     },
     {
       id: '3',
-      caption: 'Coragem para enfrentar os medos...',
+      caption: 'Coragem: Por que a maioria dos médicos não fala sobre isso com seus pacientes...',
       likes: 890,
       comments: 56,
       shares: 23,
       reach: 8500,
       engagement_rate: 11.4,
-      magnetic_code: 'Ruptura Cognitiva',
+      magnetic_code: 'Elefante na Sala',
       objective: 'captar',
       post_date: '2025-01-13',
       performance_score: 71
+    },
+    {
+      id: '4',
+      caption: 'GAFLIX 300 vídeos: Acesso completo ao maior acervo de gastroenterologia do Brasil...',
+      likes: 320,
+      comments: 28,
+      shares: 12,
+      reach: 3500,
+      engagement_rate: 10.3,
+      magnetic_code: 'Solução Única',
+      objective: 'converter',
+      post_date: '2025-01-12',
+      performance_score: 68
+    },
+    {
+      id: '5',
+      caption: 'Devagar e Sempre: A estratégia que mudou completamente meus resultados com pacientes...',
+      likes: 280,
+      comments: 19,
+      shares: 8,
+      reach: 2800,
+      engagement_rate: 10.9,
+      magnetic_code: 'Vitória Transformadora',
+      objective: 'conectar',
+      post_date: '2025-01-11',
+      performance_score: 65
     }
   ];
 
@@ -193,20 +219,27 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
             </div>
           )}
 
-          {selectedProject && !isConnected && (
-            <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-4 space-y-3">
-              <h4 className="font-medium text-pink-800 mb-2">📱 Conecte seu Instagram</h4>
-              <p className="text-pink-700 text-sm mb-3">
-                Conecte sua conta do Instagram para começar a monitorar a performance dos seus posts e otimizar seus próximos calendários editoriais.
+          {selectedProject && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-blue-800 mb-2">📊 Dashboard Demonstrativo</h4>
+              <p className="text-blue-700 text-sm mb-3">
+                Visualização demonstrativa baseada nos dados do dashboard BRIO Analytics da @drgabrielaleimeida. 
+                Para dados reais, conecte sua conta do Instagram Business.
               </p>
               
-              <Button
-                onClick={connectInstagram}
-                className="bg-gradient-to-r from-pink-500 to-purple-500 text-white flex items-center gap-2"
-              >
-                <Instagram className="w-4 h-4" />
-                Conectar Instagram Business
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={connectInstagram}
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                >
+                  <Instagram className="w-4 h-4" />
+                  Conectar Instagram Real
+                </Button>
+                <Badge className="bg-blue-100 text-blue-800">
+                  Modo Demonstração
+                </Badge>
+              </div>
             </div>
           )}
 
@@ -323,7 +356,7 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockPosts.map((post, index) => (
+                    {demoPostsData.map((post, index) => (
                       <div key={post.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
