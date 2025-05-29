@@ -26,6 +26,10 @@ export function EditorialCalendar({ selectedProject }: EditorialCalendarProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<CalendarSuggestion | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [quickSetup, setQuickSetup] = useState({
+    profession: '',
+    objective: ''
+  });
   const { toast } = useToast();
 
   const objectives = {
@@ -70,6 +74,45 @@ export function EditorialCalendar({ selectedProject }: EditorialCalendarProps) {
       toast({
         title: "Calendário gerado!",
         description: `${calendarData.length} sugestões criadas para ${selectedProject.name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao gerar calendário",
+        description: "Não foi possível gerar as sugestões. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const generateQuickCalendar = async () => {
+    setIsGenerating(true);
+    
+    try {
+      const response = await fetch('/api/editorial-calendar/quick', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          profession: quickSetup.profession,
+          objective: quickSetup.objective,
+          month: currentMonth.getMonth() + 1,
+          year: currentMonth.getFullYear(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao gerar calendário');
+      }
+
+      const calendarData: CalendarSuggestion[] = await response.json();
+      setSuggestions(calendarData);
+
+      toast({
+        title: "Calendário de teste gerado!",
+        description: `${calendarData.length} sugestões criadas para ${quickSetup.profession}`,
       });
     } catch (error) {
       toast({
@@ -145,10 +188,43 @@ export function EditorialCalendar({ selectedProject }: EditorialCalendarProps) {
 
         <CardContent className="space-y-4">
           {!selectedProject && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-yellow-800 text-sm">
-                ⚠️ Selecione um projeto MPMP na aba "Projetos MPMP" para gerar seu calendário editorial personalizado
+            <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-yellow-800 mb-2">🚀 Teste Rápido - Gere um Calendário Agora!</h4>
+              <p className="text-yellow-700 text-sm mb-3">
+                Não tem um projeto MPMP ainda? Sem problema! Preencha os campos abaixo para gerar um calendário editorial básico:
               </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700">Sua Profissão/Especialidade:</label>
+                  <input
+                    type="text"
+                    value={quickSetup.profession}
+                    onChange={(e) => setQuickSetup(prev => ({ ...prev, profession: e.target.value }))}
+                    placeholder="Ex: Cardiologista, Nutricionista, Coach..."
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-gray-700">Objetivo Principal:</label>
+                  <input
+                    type="text"
+                    value={quickSetup.objective}
+                    onChange={(e) => setQuickSetup(prev => ({ ...prev, objective: e.target.value }))}
+                    placeholder="Ex: Educar sobre prevenção, Gerar leads..."
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              
+              <button
+                onClick={generateQuickCalendar}
+                disabled={!quickSetup.profession.trim() || !quickSetup.objective.trim() || isGenerating}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-2 px-4 rounded-md text-sm font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isGenerating ? 'Gerando Calendário...' : '✨ Gerar Calendário de Teste'}
+              </button>
             </div>
           )}
 

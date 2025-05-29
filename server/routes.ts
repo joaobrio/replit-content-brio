@@ -541,6 +541,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Quick calendar endpoint for testing without MPMP
+  app.post("/api/editorial-calendar/quick", async (req, res) => {
+    try {
+      const { profession, objective, month, year } = req.body;
+      
+      // Create a mock project for quick testing
+      const mockProject = {
+        name: `Teste - ${profession}`,
+        mainSpecialty: profession,
+        purpose: objective,
+        values: ['Qualidade', 'Profissionalismo', 'Resultados'],
+        id: 0
+      };
+
+      const calendar = await generateEditorialCalendar(mockProject, month, year);
+      res.json(calendar);
+    } catch (error) {
+      console.error('Error generating quick calendar:', error);
+      res.status(500).json({ message: "Erro ao gerar calendário de teste" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
