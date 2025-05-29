@@ -704,7 +704,7 @@ Seja preciso na extração e mantenha consistência com os dados do documento.`
     return chunks;
   }
 
-  // Function to process text content in chunks
+  // Function to process text content in chunks with retry logic
   async function processMPMPText(content: string) {
     const chunks = splitTextIntoChunks(content, 100000); // 100k characters per chunk
     let extractedData: any = {};
@@ -712,12 +712,17 @@ Seja preciso na extração e mantenha consistência com os dados do documento.`
     for (let i = 0; i < chunks.length; i++) {
       console.log(`Processing chunk ${i + 1}/${chunks.length}`);
       
-      const response = await anthropic.messages.create({
-        model: 'claude-3-7-sonnet-20250219', // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: `Você é um especialista em análise de documentos de marca pessoal. Analise o seguinte conteúdo (parte ${i + 1} de ${chunks.length}) e extraia informações estruturadas para criar um projeto no sistema BRIO.IA.
+      let retries = 3;
+      let chunkData: any = null;
+      
+      while (retries > 0 && !chunkData) {
+        try {
+          const response = await anthropic.messages.create({
+            model: 'claude-3-7-sonnet-20250219', // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+            max_tokens: 4000,
+            messages: [{
+              role: 'user',
+              content: `Você é um especialista em análise de documentos de marca pessoal. Analise o seguinte conteúdo (parte ${i + 1} de ${chunks.length}) e extraia informações estruturadas para criar um projeto no sistema BRIO.IA.
 
 CONTEÚDO PARA ANÁLISE:
 ${chunks[i]}
@@ -751,15 +756,44 @@ ${i === 0 ? `Responda APENAS com um objeto JSON válido contendo as seguintes ch
 }` : `Responda APENAS com um objeto JSON válido contendo informações ADICIONAIS encontradas nesta parte do documento. Use null para informações não encontradas. Mantenha a mesma estrutura do objeto anterior.`}
 
 Seja preciso na extração e mantenha consistência com os dados do documento.`
-        }]
-      });
+            }]
+          });
 
-      const firstContent = response.content[0];
-      if (firstContent.type !== 'text') {
-        throw new Error('Resposta inesperada da API');
+          const firstContent = response.content[0];
+          if (firstContent.type !== 'text') {
+            throw new Error('Resposta inesperada da API');
+          }
+          
+          // Clean the response text to extract JSON
+          let jsonText = firstContent.text.trim();
+          
+          // Remove markdown code blocks if present - more robust approach
+          jsonText = jsonText.replace(/^```(?:json)?\s*/, '').replace(/\s*```\s*$/, '');
+          
+          // Find JSON object boundaries
+          const openBrace = jsonText.indexOf('{');
+          const closeBrace = jsonText.lastIndexOf('}');
+          
+          if (openBrace !== -1 && closeBrace !== -1 && closeBrace > openBrace) {
+            jsonText = jsonText.substring(openBrace, closeBrace + 1);
+          }
+          
+          chunkData = JSON.parse(jsonText);
+          
+        } catch (error: any) {
+          retries--;
+          if (error?.status === 529) {
+            console.log(`API overloaded, retrying in ${(4 - retries) * 2} seconds...`);
+            await new Promise(resolve => setTimeout(resolve, (4 - retries) * 2000));
+          } else if (retries === 0) {
+            throw error;
+          }
+        }
       }
       
-      const chunkData = JSON.parse(firstContent.text);
+      if (!chunkData) {
+        throw new Error('Failed to process chunk after retries');
+      }
       
       // Merge data from this chunk
       for (const key in chunkData) {
