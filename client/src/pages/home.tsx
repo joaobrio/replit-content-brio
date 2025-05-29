@@ -7,6 +7,7 @@ import { ProjectWizard } from '@/components/project-wizard';
 import { EditorialCalendar } from '@/components/editorial-calendar';
 import { AnalyticsDashboard } from '@/components/analytics-dashboard';
 import { SuccessStories } from '@/components/success-stories';
+import { StoriesModule } from '@/components/stories-module';
 import { Clock, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -128,7 +129,7 @@ export default function Home() {
             <Tabs defaultValue="generator" className="space-y-4 sm:space-y-6">
               {/* Mobile-optimized tabs with horizontal scroll */}
               <div className="overflow-x-auto scrollbar-hide">
-                <TabsList className="grid w-max grid-cols-6 min-w-[580px] sm:min-w-0 sm:w-full gap-1">
+                <TabsList className="grid w-max grid-cols-7 min-w-[680px] sm:min-w-0 sm:w-full gap-1">
                   <TabsTrigger value="generator" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
                     <span className="hidden sm:inline">Gerador de Conteúdo</span>
                     <span className="sm:hidden">Gerador</span>
@@ -139,6 +140,10 @@ export default function Home() {
                   </TabsTrigger>
                   <TabsTrigger value="analytics" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
                     Analytics
+                  </TabsTrigger>
+                  <TabsTrigger value="stories-module" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
+                    <span className="hidden sm:inline">Stories Magnéticos</span>
+                    <span className="sm:hidden">Stories</span>
                   </TabsTrigger>
                   <TabsTrigger value="stories" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
                     <span className="hidden sm:inline">Casos de Sucesso</span>
@@ -165,6 +170,10 @@ export default function Home() {
               
               <TabsContent value="analytics" className="mt-4 sm:mt-6">
                 <AnalyticsDashboard selectedProject={selectedProject} />
+              </TabsContent>
+              
+              <TabsContent value="stories-module" className="mt-4 sm:mt-6">
+                <StoriesModule selectedProject={selectedProject} />
               </TabsContent>
               
               <TabsContent value="stories" className="mt-4 sm:mt-6">

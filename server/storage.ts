@@ -56,9 +56,11 @@ export class MemStorage implements IStorage {
     this.contentGenerations = new Map();
     this.projects = new Map();
     this.successStories = new Map();
+    this.storyProjects = new Map();
     this.currentContentId = 1;
     this.currentProjectId = 1;
     this.currentStoryId = 1;
+    this.currentStoryProjectId = 1;
     
     this.initializeSampleStories();
   }
@@ -270,6 +272,55 @@ export class MemStorage implements IStorage {
 
   async getSuccessStory(id: number): Promise<SuccessStory | undefined> {
     return this.successStories.get(id);
+  }
+
+  // Story Projects methods
+  async createStoryProject(insertStoryProject: InsertStoryProject): Promise<StoryProject> {
+    const id = this.currentStoryProjectId++;
+    const storyProject: StoryProject = {
+      id,
+      ...insertStoryProject,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.storyProjects.set(id, storyProject);
+    return storyProject;
+  }
+
+  async getStoryProjects(projectId?: number, limit: number = 10): Promise<StoryProject[]> {
+    const allStories = Array.from(this.storyProjects.values());
+    const filtered = projectId 
+      ? allStories.filter(story => story.projectId === projectId)
+      : allStories;
+    
+    return filtered
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  }
+
+  async getStoryProject(id: number): Promise<StoryProject | undefined> {
+    return this.storyProjects.get(id);
+  }
+
+  async updateStoryProject(id: number, updateData: Partial<InsertStoryProject>): Promise<StoryProject> {
+    const existing = this.storyProjects.get(id);
+    if (!existing) {
+      throw new Error('Story project not found');
+    }
+    
+    const updated: StoryProject = {
+      ...existing,
+      ...updateData,
+      id,
+      updatedAt: new Date(),
+    };
+    
+    this.storyProjects.set(id, updated);
+    return updated;
+  }
+
+  async deleteStoryProject(id: number): Promise<void> {
+    this.storyProjects.delete(id);
   }
 }
 
