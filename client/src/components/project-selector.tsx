@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Settings, Briefcase } from 'lucide-react';
+import { Plus, Settings, Briefcase, Upload, FileText, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type Project } from '@shared/schema';
 
@@ -21,6 +21,8 @@ export function ProjectSelector({
 }: ProjectSelectorProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,6 +50,52 @@ export function ProjectSelector({
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMPMPUpload = async (file: File) => {
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/projects/upload-mpmp', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha no upload do arquivo');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "MPMP processado com sucesso!",
+        description: `Projeto "${result.name}" criado automaticamente a partir do manual.`,
+      });
+
+      // Recarregar projetos e selecionar o novo
+      await loadProjects();
+      onProjectChange(result);
+
+    } catch (error) {
+      toast({
+        title: "Erro no processamento",
+        description: "Não foi possível processar o arquivo MPMP. Verifique o formato.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleMPMPUpload(file);
     }
   };
 
@@ -135,27 +183,74 @@ export function ProjectSelector({
         )}
 
         {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            onClick={onCreateProject}
-            className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-lg transition-all"
-            size="sm"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Projeto
-          </Button>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Button
+              onClick={onCreateProject}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-lg transition-all"
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Projeto
+            </Button>
+            
+            {selectedProject && (
+              <Button
+                variant="outline"
+                onClick={() => onEditProject(selectedProject)}
+                size="sm"
+                className="border-gray-300 hover:border-blue-400"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Configurar MPMP
+              </Button>
+            )}
+          </div>
           
-          {selectedProject && (
+          {/* Upload MPMP Section */}
+          <div className="border-t border-gray-200 pt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Upload de MPMP Pronto</span>
+            </div>
+            <p className="text-xs text-gray-600 mb-3">
+              Faça upload do seu Manual de Posicionamento já finalizado para criar automaticamente um projeto com todos os dados estratégicos
+            </p>
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
+            
             <Button
               variant="outline"
-              onClick={() => onEditProject(selectedProject)}
-              size="sm"
-              className="border-gray-300 hover:border-blue-400"
+              className="w-full"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
             >
-              <Settings className="w-4 h-4 mr-2" />
-              Configurar MPMP
+              {isUploading ? (
+                <>
+                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                  Processando MPMP...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Fazer Upload de MPMP
+                </>
+              )}
             </Button>
-          )}
+            
+            <div className="flex items-center gap-1 mt-2">
+              <CheckCircle className="w-3 h-3 text-green-500" />
+              <span className="text-xs text-gray-500">
+                Suporta PDF, Word e texto
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Projects Summary */}
