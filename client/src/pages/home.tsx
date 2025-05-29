@@ -8,16 +8,75 @@ import { EditorialCalendar } from '@/components/editorial-calendar';
 import { AnalyticsDashboard } from '@/components/analytics-dashboard';
 import { SuccessStories } from '@/components/success-stories';
 import { StoriesModule } from '@/components/stories-module';
-import { Clock, Settings } from 'lucide-react';
+import { 
+  Clock, 
+  Settings, 
+  Sparkles, 
+  Calendar, 
+  BarChart3, 
+  Trophy, 
+  Video, 
+  Upload,
+  Folder,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import { type Project, type InsertProject } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+
+const navigation = [
+  {
+    id: 'generator',
+    name: 'Gerador de Conteúdo',
+    icon: Sparkles,
+    description: 'Crie posts magnéticos usando os 8 Códigos'
+  },
+  {
+    id: 'calendar',
+    name: 'Calendário Editorial',
+    icon: Calendar,
+    description: 'Planeje seu conteúdo estrategicamente'
+  },
+  {
+    id: 'analytics',
+    name: 'Analytics',
+    icon: BarChart3,
+    description: 'Analise performance dos posts'
+  },
+  {
+    id: 'stories-module',
+    name: 'Stories Magnéticos',
+    icon: Video,
+    description: 'Crie stories com frameworks MUS'
+  },
+  {
+    id: 'stories',
+    name: 'Casos de Sucesso',
+    icon: Trophy,
+    description: 'Inspire-se com casos reais'
+  },
+  {
+    id: 'projects',
+    name: 'Projetos MPMP',
+    icon: Folder,
+    description: 'Gerencie seus projetos de marca'
+  },
+  {
+    id: 'knowledge',
+    name: 'Base de Conhecimento',
+    icon: Upload,
+    description: 'Envie materiais de referência'
+  }
+];
 
 export default function Home() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showProjectWizard, setShowProjectWizard] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [activeTab, setActiveTab] = useState('generator');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { toast } = useToast();
 
   const handleCreateProject = () => {
@@ -81,131 +140,148 @@ export default function Home() {
     );
   }
 
+  const renderActiveContent = () => {
+    switch (activeTab) {
+      case 'generator':
+        return <ContentGenerator />;
+      case 'calendar':
+        return <EditorialCalendar selectedProject={selectedProject} />;
+      case 'analytics':
+        return <AnalyticsDashboard selectedProject={selectedProject} />;
+      case 'stories-module':
+        return <StoriesModule selectedProject={selectedProject} />;
+      case 'stories':
+        return <SuccessStories />;
+      case 'projects':
+        return (
+          <ProjectSelector
+            selectedProject={selectedProject}
+            onProjectChange={setSelectedProject}
+            onCreateProject={handleCreateProject}
+            onEditProject={handleEditProject}
+          />
+        );
+      case 'knowledge':
+        return <KnowledgeUpload />;
+      default:
+        return <ContentGenerator />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm sm:text-base">B</span>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <div className={cn(
+        "bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
+        sidebarCollapsed ? "w-16" : "w-72"
+      )}>
+        {/* Header */}
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className={cn(
+              "flex items-center gap-3 transition-opacity duration-300",
+              sidebarCollapsed ? "opacity-0" : "opacity-100"
+            )}>
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold">B</span>
               </div>
               <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">BRIO.IA</h1>
-                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Conteúdo Magnético</p>
+                <h1 className="text-xl font-bold text-gray-900">BRIO.IA</h1>
+                <p className="text-sm text-gray-600">Conteúdo Magnético</p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="hidden md:flex items-center gap-2 text-sm text-gray-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="hidden lg:inline">Claude 3.7 Sonnet</span>
-                <span className="lg:hidden">Claude</span>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 text-xs sm:text-sm text-gray-500">
-                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden lg:inline">Tempo médio: 2.1s</span>
-                <span className="lg:hidden">2.1s</span>
-              </div>
-              <Button variant="ghost" size="sm" className="w-8 h-8 sm:w-10 sm:h-10">
-                <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="w-8 h-8"
+            >
+              {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </Button>
           </div>
         </div>
-      </header>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-2">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200",
+                  isActive
+                    ? "bg-purple-50 text-purple-700 border border-purple-200"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                )}
+              >
+                <Icon className={cn(
+                  "w-5 h-5 flex-shrink-0",
+                  isActive ? "text-purple-600" : "text-gray-400"
+                )} />
+                {!sidebarCollapsed && (
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm truncate">{item.name}</div>
+                    <div className="text-xs text-gray-500 truncate">{item.description}</div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Status Footer */}
+        <div className="p-4 border-t border-gray-100">
+          {!sidebarCollapsed && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-gray-600">Claude 3.7 Sonnet</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Clock className="w-3 h-3" />
+                <span>Tempo médio: 2.1s</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
-          {/* History Sidebar - Hidden on mobile, shown at bottom */}
-          <div className="hidden lg:block lg:col-span-1">
-            <HistorySidebar />
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <header className="bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {navigation.find(item => item.id === activeTab)?.name}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {navigation.find(item => item.id === activeTab)?.description}
+              </p>
+            </div>
+            <Button variant="ghost" size="sm">
+              <Settings className="w-5 h-5" />
+            </Button>
           </div>
-          
-          {/* Main Content Area */}
-          <div className="col-span-1 lg:col-span-3">
-            <Tabs defaultValue="generator" className="space-y-4 sm:space-y-6">
-              {/* Mobile-optimized tabs with horizontal scroll */}
-              <div className="overflow-x-auto scrollbar-hide">
-                <TabsList className="grid w-max grid-cols-7 min-w-[680px] sm:min-w-0 sm:w-full gap-1">
-                  <TabsTrigger value="generator" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
-                    <span className="hidden sm:inline">Gerador de Conteúdo</span>
-                    <span className="sm:hidden">Gerador</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="calendar" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
-                    <span className="hidden sm:inline">Calendário Editorial</span>
-                    <span className="sm:hidden">Calendário</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
-                    Analytics
-                  </TabsTrigger>
-                  <TabsTrigger value="stories-module" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
-                    <span className="hidden sm:inline">Stories Magnéticos</span>
-                    <span className="sm:hidden">Stories</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="stories" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
-                    <span className="hidden sm:inline">Casos de Sucesso</span>
-                    <span className="sm:hidden">Casos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="projects" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
-                    <span className="hidden sm:inline">Projetos MPMP</span>
-                    <span className="sm:hidden">Projetos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="knowledge" className="text-xs sm:text-sm px-2 sm:px-4 whitespace-nowrap">
-                    <span className="hidden sm:inline">Base de Conhecimento</span>
-                    <span className="sm:hidden">Base</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <TabsContent value="generator" className="mt-4 sm:mt-6">
-                <ContentGenerator />
-              </TabsContent>
-              
-              <TabsContent value="calendar" className="mt-4 sm:mt-6">
-                <EditorialCalendar selectedProject={selectedProject} />
-              </TabsContent>
-              
-              <TabsContent value="analytics" className="mt-4 sm:mt-6">
-                <AnalyticsDashboard selectedProject={selectedProject} />
-              </TabsContent>
-              
-              <TabsContent value="stories-module" className="mt-4 sm:mt-6">
-                <StoriesModule selectedProject={selectedProject} />
-              </TabsContent>
-              
-              <TabsContent value="stories" className="mt-4 sm:mt-6">
-                <SuccessStories />
-              </TabsContent>
-              
-              <TabsContent value="projects" className="mt-4 sm:mt-6">
-                <ProjectSelector
-                  selectedProject={selectedProject}
-                  onProjectChange={setSelectedProject}
-                  onCreateProject={handleCreateProject}
-                  onEditProject={handleEditProject}
-                />
-              </TabsContent>
-              
-              <TabsContent value="knowledge" className="mt-4 sm:mt-6">
-                <KnowledgeUpload />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+        </header>
 
-        {/* Mobile History Section */}
-        <div className="lg:hidden mt-6 sm:mt-8">
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="p-4 border-b border-gray-100">
-              <h3 className="text-base font-semibold text-gray-900">Histórico Recente</h3>
-            </div>
-            <div className="p-4">
-              <HistorySidebar />
-            </div>
-          </div>
+        {/* Content Area */}
+        <main className="flex-1 p-6 overflow-auto">
+          {renderActiveContent()}
+        </main>
+      </div>
+
+      {/* Right Sidebar - History (Hidden on small screens) */}
+      <div className="hidden xl:block w-80 bg-white border-l border-gray-200">
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">Histórico Recente</h3>
+        </div>
+        <div className="p-4">
+          <HistorySidebar />
         </div>
       </div>
     </div>
