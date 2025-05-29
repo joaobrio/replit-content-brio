@@ -46,9 +46,11 @@ export class MemStorage implements IStorage {
   private contentGenerations: Map<number, ContentGeneration>;
   private projects: Map<number, Project>;
   private successStories: Map<number, SuccessStory>;
+  private storyProjects: Map<number, StoryProject>;
   private currentContentId: number;
   private currentProjectId: number;
   private currentStoryId: number;
+  private currentStoryProjectId: number;
 
   constructor() {
     this.contentGenerations = new Map();
