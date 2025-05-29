@@ -637,6 +637,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stories API endpoints
+  app.get('/api/stories', async (req, res) => {
+    try {
+      const { projectId, limit = 10 } = req.query;
+      const stories = await storage.getStoryProjects(
+        projectId ? parseInt(projectId as string) : undefined,
+        parseInt(limit as string)
+      );
+      res.json(stories);
+    } catch (error) {
+      console.error('Error fetching stories:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/stories/generate', async (req, res) => {
+    try {
+      const { projectId, title, framework, objective, magneticCode } = req.body;
+
+      // Get project MPMP data
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      // Generate story slides using Claude
+      const slides = await generateStorySlides({
+        project,
+        framework,
+        objective,
+        magneticCode,
+        title
+      });
+
+      // Save story to storage
+      const storyProject = await storage.createStoryProject({
+        projectId,
+        userId: 1, // Default user
+        title,
+        framework,
+        objective,
+        magneticCode,
+        slides,
+        metadata: {
+          estimatedDuration: slides.length * 5, // 5 seconds per slide
+          hashtags: project.mainHashtags || [],
+          createdAt: new Date().toISOString()
+        },
+        status: 'draft'
+      });
+
+      res.json({
+        id: storyProject.id,
+        title: storyProject.title,
+        slides: slides,
+        framework: storyProject.framework,
+        objective: storyProject.objective,
+        magneticCode: storyProject.magneticCode
+      });
+
+    } catch (error) {
+      console.error('Error generating story:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/stories/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const story = await storage.getStoryProject(parseInt(id));
+      if (!story) {
+        return res.status(404).json({ error: 'Story not found' });
+      }
+      res.json(story);
+    } catch (error) {
+      console.error('Error fetching story:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/stories/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      const story = await storage.updateStoryProject(parseInt(id), updateData);
+      res.json(story);
+    } catch (error) {
+      console.error('Error updating story:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.delete('/api/stories/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteStoryProject(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting story:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

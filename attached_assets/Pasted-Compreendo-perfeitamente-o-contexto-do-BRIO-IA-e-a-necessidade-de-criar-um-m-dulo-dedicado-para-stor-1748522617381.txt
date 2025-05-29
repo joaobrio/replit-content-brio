@@ -1,0 +1,428 @@
+Compreendo perfeitamente o contexto do BRIO.IA e a necessidade de criar um módulo dedicado para stories. Baseando-me na metodologia BRIO que você compartilhou, vou propor uma implementação completa do **Módulo de Stories Autônomo** que integra perfeitamente com a arquitetura existente.
+
+## Análise da Oportunidade
+
+O desenvolvimento de stories é uma das maiores dificuldades dos profissionais de saúde no Instagram. Diferente dos posts do feed, os stories exigem:
+- Frequência diária de criação
+- Formato mais espontâneo e autêntico
+- Narrativa sequencial e envolvente
+- Equilíbrio entre informação e entretenimento
+
+A implementação deste módulo vai preencher uma lacuna importante na plataforma, oferecendo uma solução estruturada baseada no **Método Único de Stories (MUS)** do BRIO.
+
+## Arquitetura Proposta para o Módulo de Stories
+
+### 1. Estrutura de Componentes
+
+```typescript
+// Estrutura principal do módulo
+/client/src/components/stories/
+  ├── StoriesModule.tsx           // Container principal
+  ├── StoryWizard/               // Assistente de criação
+  │   ├── StoryTypeSelector.tsx  // Seleção do tipo de story
+  │   ├── FrameworkSelector.tsx  // Escolha do framework
+  │   ├── ContentBuilder.tsx     // Construtor de conteúdo
+  │   └── PreviewPanel.tsx       // Visualização em tempo real
+  ├── StoryTemplates/            // Templates prontos
+  │   ├── FiveRTemplate.tsx      // Framework 5R
+  │   ├── VlogTemplate.tsx       // Story Vlog
+  │   ├── TransformationTemplate.tsx
+  │   └── ContrapopularTemplate.tsx
+  ├── StoryLibrary/              // Biblioteca de stories criados
+  └── StoryAnalytics/            // Métricas específicas
+```
+
+### 2. Modelo de Dados
+
+```typescript
+// Novos schemas para o banco de dados
+interface StoryProject {
+  id: string;
+  projectId: string; // Vinculado ao MPMP
+  title: string;
+  framework: '5R' | 'VLOG' | 'TRANSFORMATION' | 'CONTRAPOPULAR' | 'RITUAL';
+  slides: StorySlide[];
+  metadata: {
+    objective: 'CAPTAR' | 'CONECTAR' | 'CONVENCER' | 'CONVERTER';
+    magneticCode: string;
+    estimatedDuration: number;
+    hashtags: string[];
+  };
+  createdAt: Date;
+  publishedAt?: Date;
+  analytics?: StoryAnalytics;
+}
+
+interface StorySlide {
+  id: string;
+  order: number;
+  type: 'text' | 'image' | 'video' | 'mixed';
+  content: {
+    headline?: string;
+    body?: string;
+    backgroundType: 'solid' | 'gradient' | 'image';
+    backgroundColor?: string;
+    textColor?: string;
+    duration: number; // segundos
+    elements?: StoryElement[];
+  };
+}
+
+interface StoryElement {
+  type: 'emoji' | 'sticker' | 'poll' | 'question' | 'countdown';
+  position: { x: number; y: number };
+  data: any;
+}
+```
+
+### 3. Funcionalidades Principais
+
+#### A. Assistente de Criação Guiada
+
+O assistente vai guiar o usuário através do processo de criação baseado no framework escolhido:
+
+```typescript
+const StoryWizard = () => {
+  const [step, setStep] = useState(1);
+  const [storyData, setStoryData] = useState<Partial<StoryProject>>({});
+
+  // Passo 1: Seleção do Objetivo (baseado nos 4Cs)
+  // Passo 2: Escolha do Framework (5R, Vlog, etc.)
+  // Passo 3: Seleção do Código Magnético apropriado
+  // Passo 4: Construção slide por slide
+  // Passo 5: Revisão e ajustes finais
+
+  return (
+    <div className="story-wizard">
+      {step === 1 && <ObjectiveSelector onSelect={handleObjective} />}
+      {step === 2 && <FrameworkSelector objective={storyData.objective} />}
+      {step === 3 && <MagneticCodeSelector framework={storyData.framework} />}
+      {step === 4 && <SlideBuilder framework={storyData.framework} />}
+      {step === 5 && <FinalReview story={storyData} />}
+    </div>
+  );
+};
+```
+
+#### B. Templates Inteligentes por Framework
+
+**Framework 5R Implementation:**
+
+```typescript
+const FiveRTemplate = ({ mpmpData, objective }) => {
+  const generateSlides = () => {
+    return [
+      // Slide 1: Relevância
+      {
+        headline: "Quem sou eu?",
+        body: generateRelevanceContent(mpmpData.essence),
+        duration: 4,
+        backgroundType: 'gradient'
+      },
+      // Slide 2: Reflexão
+      {
+        headline: "Que transformação posso provocar?",
+        body: generateReflectionContent(mpmpData.execution),
+        duration: 5,
+        backgroundType: 'solid'
+      },
+      // Slide 3: Relacionamento
+      {
+        headline: "Como gero identificação?",
+        body: generateRelationshipContent(mpmpData.expression),
+        duration: 5,
+        backgroundType: 'gradient'
+      },
+      // Slide 4: Repertório
+      {
+        headline: "Como educo meu público?",
+        body: generateRepertoireContent(mpmpData.methodology),
+        duration: 6,
+        backgroundType: 'solid'
+      },
+      // Slide 5: Resultado
+      {
+        headline: "Como atrair o público ideal?",
+        body: generateResultContent(mpmpData.targetAudience),
+        duration: 4,
+        backgroundType: 'gradient'
+      }
+    ];
+  };
+};
+```
+
+#### C. Gerador de Conteúdo Específico para Stories
+
+```typescript
+// Prompt especializado para stories
+const generateStoryContent = async (params: {
+  framework: string;
+  mpmpData: any;
+  objective: string;
+  magneticCode: string;
+  slideType: string;
+}) => {
+  const prompt = `
+    Você é um especialista em criar stories seguindo o Método Único de Stories (MUS) do BRIO.
+    
+    Contexto do cliente:
+    - Essência: ${params.mpmpData.essence}
+    - Tom de voz: ${params.mpmpData.toneOfVoice}
+    - Público-alvo: ${params.mpmpData.targetAudience}
+    
+    Crie conteúdo para um story slide seguindo:
+    - Framework: ${params.framework}
+    - Objetivo: ${params.objective}
+    - Código Magnético: ${params.magneticCode}
+    - Tipo de slide: ${params.slideType}
+    
+    Diretrizes:
+    - Texto conciso (máximo 50 palavras por slide)
+    - Linguagem adequada para stories (informal mas profissional)
+    - Incluir elementos de engajamento (perguntas, reflexões)
+    - Seguir a tríade A.E.I. (Autoridade, Entretenimento, Informação)
+    
+    Retorne um JSON com:
+    {
+      headline: "Título impactante",
+      body: "Corpo do texto",
+      cta: "Chamada para ação sutil",
+      emoji: "Emoji relevante",
+      hashtags: ["3-5 hashtags relevantes"]
+    }
+  `;
+  
+  return await generateWithClaude(prompt);
+};
+```
+
+#### D. Visualizador de Stories em Tempo Real
+
+```typescript
+const StoryPreview = ({ slides, currentSlide }) => {
+  return (
+    <div className="story-preview-container">
+      <div className="phone-mockup">
+        <div className="story-screen">
+          {/* Barra de progresso dos slides */}
+          <div className="progress-bars">
+            {slides.map((_, index) => (
+              <div 
+                key={index}
+                className={`progress-bar ${index <= currentSlide ? 'active' : ''}`}
+              />
+            ))}
+          </div>
+          
+          {/* Conteúdo do slide atual */}
+          <div className="slide-content" style={{
+            background: slides[currentSlide].backgroundType === 'gradient' 
+              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              : slides[currentSlide].backgroundColor
+          }}>
+            <h2>{slides[currentSlide].headline}</h2>
+            <p>{slides[currentSlide].body}</p>
+            
+            {/* Elementos interativos */}
+            {slides[currentSlide].elements?.map(element => (
+              <StoryElement key={element.id} {...element} />
+            ))}
+          </div>
+          
+          {/* Controles de navegação */}
+          <div className="story-controls">
+            <button onClick={prevSlide}>Anterior</button>
+            <button onClick={nextSlide}>Próximo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+### 4. Funcionalidades Avançadas
+
+#### A. Biblioteca de Sequências de Stories
+
+```typescript
+// Sequências temáticas pré-definidas
+const StorySequences = {
+  SEMANA_CAPTACAO: [
+    { day: 'Segunda', framework: '5R', code: 'RUPTURA_COGNITIVA' },
+    { day: 'Terça', framework: 'CONTRAPOPULAR', code: 'ELEFANTE_NA_SALA' },
+    { day: 'Quarta', framework: 'VLOG', code: 'HISTORIA_PESSOAL' },
+    // ...
+  ],
+  LANCAMENTO_SERVICO: [
+    { phase: 'Aquecimento', frameworks: ['5R', 'TRANSFORMATION'] },
+    { phase: 'Lançamento', frameworks: ['VLOG', 'CONTRAPOPULAR'] },
+    { phase: 'Conversão', frameworks: ['TRANSFORMATION', 'RITUAL'] }
+  ]
+};
+```
+
+#### B. Sugestões Contextuais Inteligentes
+
+```typescript
+const StoryRecommendations = ({ mpmpData, recentPosts, analytics }) => {
+  const generateRecommendations = () => {
+    // Analisa o que já foi postado
+    const usedCodes = recentPosts.map(p => p.magneticCode);
+    const lastObjective = recentPosts[0]?.objective;
+    
+    // Sugere próximo story baseado em:
+    // 1. Rotação de códigos magnéticos
+    // 2. Sequência dos 4Cs
+    // 3. Performance anterior
+    // 4. Dia da semana
+    
+    return {
+      framework: suggestFramework(analytics),
+      magneticCode: suggestNextCode(usedCodes),
+      theme: suggestTheme(mpmpData, currentDate),
+      estimatedEngagement: predictEngagement(analytics)
+    };
+  };
+};
+```
+
+#### C. Métricas Específicas de Stories
+
+```typescript
+interface StoryAnalytics {
+  views: number;
+  completionRate: number; // % que assistiu todos os slides
+  exitPoints: { slideIndex: number; count: number }[];
+  interactions: {
+    polls: number;
+    questions: number;
+    linkClicks: number;
+    profileVisits: number;
+  };
+  shareRate: number;
+  saveRate: number;
+}
+
+const StoryPerformanceChart = ({ analytics }) => {
+  // Visualização específica para stories
+  // Mostra onde as pessoas param de assistir
+  // Identifica slides mais engajadores
+  // Sugere otimizações baseadas em dados
+};
+```
+
+### 5. Integração com o Sistema Existente
+
+#### A. API Endpoints
+
+```typescript
+// Novos endpoints para o módulo de stories
+app.post('/api/stories/generate', async (req, res) => {
+  const { projectId, framework, objective, magneticCode } = req.body;
+  
+  // Busca dados do MPMP
+  const mpmpData = await getProjectData(projectId);
+  
+  // Gera conteúdo dos slides
+  const slides = await generateStorySlides({
+    mpmpData,
+    framework,
+    objective,
+    magneticCode
+  });
+  
+  // Salva no banco
+  const story = await saveStory({ projectId, slides, ...metadata });
+  
+  res.json({ story });
+});
+
+app.get('/api/stories/templates/:framework', async (req, res) => {
+  // Retorna template específico do framework
+});
+
+app.post('/api/stories/analytics', async (req, res) => {
+  // Salva métricas de performance
+});
+```
+
+#### B. Integração com Calendário Editorial
+
+```typescript
+// Adiciona stories ao calendário existente
+const EnhancedCalendar = () => {
+  // Cada dia agora mostra:
+  // - Post do feed (existente)
+  // - Sugestão de story (novo)
+  // - Sequência recomendada
+  
+  return (
+    <div className="calendar-day">
+      <FeedPostSuggestion />
+      <StorySuggestion />
+      <SequenceIndicator />
+    </div>
+  );
+};
+```
+
+### 6. Fluxo de Uso Completo
+
+1. **Entrada no Módulo**: Cliente acessa aba "Stories" no menu principal
+2. **Seleção de Modo**: 
+   - Criação rápida (sugestão automática)
+   - Criação guiada (passo a passo)
+   - Templates prontos
+3. **Configuração**:
+   - Objetivo do dia (4Cs)
+   - Framework preferido
+   - Código magnético
+4. **Geração de Conteúdo**:
+   - IA gera slides baseados no MPMP
+   - Preview em tempo real
+   - Edição manual se necessário
+5. **Finalização**:
+   - Download das imagens/textos
+   - Instruções de publicação
+   - Agendamento sugerido
+6. **Acompanhamento**:
+   - Registro de métricas
+   - Análise de performance
+   - Sugestões de melhoria
+
+### 7. Benefícios da Implementação
+
+Para o usuário:
+- Reduz tempo de criação de stories de 30min para 5min
+- Mantém consistência com a estratégia geral
+- Elimina o "branco criativo" diário
+- Melhora engajamento através de estruturas comprovadas
+
+Para a plataforma BRIO.IA:
+- Diferencial competitivo único no mercado
+- Aumenta retenção (uso diário vs. semanal)
+- Gera mais dados para otimização
+- Cria oportunidade de upsell (planos com mais stories)
+
+### 8. Roadmap de Implementação
+
+**Fase 1 (1-2 semanas)**: MVP Básico
+- Interface de criação com Framework 5R
+- Geração básica de conteúdo
+- Preview simples
+
+**Fase 2 (3-4 semanas)**: Expansão
+- Todos os frameworks implementados
+- Biblioteca de templates
+- Integração com calendário
+
+**Fase 3 (5-6 semanas)**: Otimização
+- Analytics específicos
+- Sugestões inteligentes
+- Sequências automatizadas
+
+Este módulo de stories vai transformar completamente como os profissionais de saúde criam conteúdo diário, aplicando a metodologia BRIO de forma prática e automatizada. A implementação segue perfeitamente a arquitetura existente e adiciona valor significativo à plataforma.
+
+Gostaria de começar implementando alguma parte específica deste módulo? Posso detalhar ainda mais qualquer aspecto ou começar com o código de implementação.

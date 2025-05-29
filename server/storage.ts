@@ -6,7 +6,9 @@ import {
   type Project,
   type InsertProject,
   type SuccessStory,
-  type HistoryItem 
+  type HistoryItem,
+  type StoryProject,
+  type InsertStoryProject
 } from "@shared/schema";
 
 export interface IStorage {
@@ -31,6 +33,13 @@ export interface IStorage {
     limit?: number;
   }): Promise<SuccessStory[]>;
   getSuccessStory(id: number): Promise<SuccessStory | undefined>;
+  
+  // Story Projects
+  createStoryProject(story: InsertStoryProject): Promise<StoryProject>;
+  getStoryProjects(projectId?: number, limit?: number): Promise<StoryProject[]>;
+  getStoryProject(id: number): Promise<StoryProject | undefined>;
+  updateStoryProject(id: number, story: Partial<InsertStoryProject>): Promise<StoryProject>;
+  deleteStoryProject(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {

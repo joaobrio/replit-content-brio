@@ -87,6 +87,34 @@ export const successStories = pgTable("success_stories", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const storyProjects = pgTable("story_projects", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").references(() => projects.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  framework: text("framework").notNull(), // '5R', 'VLOG', 'TRANSFORMATION', 'CONTRAPOPULAR', 'RITUAL'
+  objective: text("objective").notNull(), // 'CAPTAR', 'CONECTAR', 'CONVENCER', 'CONVERTER'
+  magneticCode: text("magnetic_code").notNull(),
+  slides: json("slides").notNull(), // Array of StorySlide objects
+  metadata: json("metadata"), // estimatedDuration, hashtags, etc.
+  status: text("status").default("draft"), // 'draft', 'published', 'archived'
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const storyAnalytics = pgTable("story_analytics", {
+  id: serial("id").primaryKey(),
+  storyProjectId: integer("story_project_id").references(() => storyProjects.id).notNull(),
+  views: integer("views").default(0),
+  completionRate: integer("completion_rate").default(0), // percentage
+  exitPoints: json("exit_points"), // Array of {slideIndex, count}
+  interactions: json("interactions"), // polls, questions, linkClicks, etc.
+  shareRate: integer("share_rate").default(0),
+  saveRate: integer("save_rate").default(0),
+  recordedAt: timestamp("recorded_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -109,6 +137,17 @@ export const insertSuccessStorySchema = createInsertSchema(successStories).omit(
   updatedAt: true,
 });
 
+export const insertStoryProjectSchema = createInsertSchema(storyProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStoryAnalyticsSchema = createInsertSchema(storyAnalytics).omit({
+  id: true,
+  recordedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Project = typeof projects.$inferSelect;
@@ -117,6 +156,10 @@ export type ContentGeneration = typeof contentGenerations.$inferSelect;
 export type InsertContentGeneration = z.infer<typeof insertContentGenerationSchema>;
 export type SuccessStory = typeof successStories.$inferSelect;
 export type InsertSuccessStory = z.infer<typeof insertSuccessStorySchema>;
+export type StoryProject = typeof storyProjects.$inferSelect;
+export type InsertStoryProject = z.infer<typeof insertStoryProjectSchema>;
+export type StoryAnalytics = typeof storyAnalytics.$inferSelect;
+export type InsertStoryAnalytics = z.infer<typeof insertStoryAnalyticsSchema>;
 
 // Frontend-specific types
 export interface ContentVariation {
@@ -199,4 +242,49 @@ export interface MPMPExpressao {
   mainHashtags: string[];
   postSignature: string;
   defaultBio: string;
+}
+
+// Story-specific types
+export interface StorySlide {
+  id: string;
+  order: number;
+  type: 'text' | 'image' | 'video' | 'mixed';
+  content: {
+    headline?: string;
+    body?: string;
+    backgroundType: 'solid' | 'gradient' | 'image';
+    backgroundColor?: string;
+    textColor?: string;
+    duration: number; // seconds
+    elements?: StoryElement[];
+  };
+}
+
+export interface StoryElement {
+  type: 'emoji' | 'sticker' | 'poll' | 'question' | 'countdown';
+  position: { x: number; y: number };
+  data: any;
+}
+
+export interface StoryFramework {
+  id: string;
+  name: string;
+  description: string;
+  slideCount: number;
+  structure: string[];
+  bestFor: string[];
+  examples: string[];
+}
+
+export interface StorySequence {
+  id: string;
+  name: string;
+  description: string;
+  duration: string; // "semana", "mes", etc.
+  stories: {
+    day: string;
+    framework: string;
+    objective: string;
+    magneticCode: string;
+  }[];
 }
