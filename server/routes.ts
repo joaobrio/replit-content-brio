@@ -598,6 +598,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // MPMP Import PDF endpoint
+  app.post('/api/mpmp/import-pdf', async (req, res) => {
+    try {
+      // For now, simulate PDF processing and return structured data
+      // In production, this would use a PDF parser + AI to extract information
+      
+      const mockExtractedData = {
+        name: "Dr. Ana Silva - Nutricionista",
+        purpose: "Transformar a relação das pessoas com a alimentação através de uma abordagem integrativa e humanizada",
+        values: ["Saúde integral", "Educação nutricional", "Sustentabilidade", "Bem-estar"],
+        originStory: "Após superar meus próprios desafios com alimentação, descobri que a nutrição vai muito além das calorias - é sobre criar uma relação saudável e sustentável com a comida.",
+        mission: "Educar e empoderar pessoas para que façam escolhas alimentares conscientes e transformem sua saúde de dentro para fora",
+        mainSpecialty: "Nutrição Clínica e Comportamental",
+        subspecialties: ["Nutrição esportiva", "Transtornos alimentares", "Nutrição infantil"],
+        differentials: ["Abordagem integrativa", "Foco no comportamento alimentar", "Acompanhamento personalizado"],
+        methodology: "Método NUTRI+ - Nutrição + Comportamento + Sustentabilidade",
+        typicalResults: ["Perda de peso sustentável", "Melhora dos exames laboratoriais", "Mudança de hábitos duradoura"],
+        keywords: ["nutrição", "alimentação saudável", "mudança de hábitos", "saúde integral"],
+        defaultBio: "Nutricionista Clínica | Especialista em Comportamento Alimentar | Transformando vidas através da alimentação consciente"
+      };
+
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      res.json({
+        success: true,
+        projectData: mockExtractedData,
+        message: "PDF processado com sucesso"
+      });
+
+    } catch (error) {
+      console.error('Error processing PDF:', error);
+      res.status(500).json({ 
+        success: false,
+        message: "Erro ao processar PDF" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

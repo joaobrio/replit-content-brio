@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X, Plus, ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type Project, type InsertProject } from '@shared/schema';
+import { MPMPImport } from './mpmp-import';
 
 interface ProjectWizardProps {
   project?: Project;
@@ -18,6 +19,7 @@ interface ProjectWizardProps {
 
 export function ProjectWizard({ project, onSave, onCancel }: ProjectWizardProps) {
   const { toast } = useToast();
+  const [showImportOptions, setShowImportOptions] = useState(!project); // Show import options only for new projects
   const [activeTab, setActiveTab] = useState('essencia');
   
   // Form state
