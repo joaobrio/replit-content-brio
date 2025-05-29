@@ -1,11 +1,82 @@
+import { useState } from 'react';
 import { ContentGenerator } from '@/components/content-generator';
 import { HistorySidebar } from '@/components/history-sidebar';
 import { KnowledgeUpload } from '@/components/knowledge-upload';
+import { ProjectSelector } from '@/components/project-selector';
+import { ProjectWizard } from '@/components/project-wizard';
 import { Clock, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { type Project, type InsertProject } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [showProjectWizard, setShowProjectWizard] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const { toast } = useToast();
+
+  const handleCreateProject = () => {
+    setEditingProject(null);
+    setShowProjectWizard(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project);
+    setShowProjectWizard(true);
+  };
+
+  const handleSaveProject = async (projectData: InsertProject) => {
+    try {
+      const url = editingProject ? `/api/projects/${editingProject.id}` : '/api/projects';
+      const method = editingProject ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(projectData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao salvar projeto');
+      }
+
+      const savedProject: Project = await response.json();
+      
+      setSelectedProject(savedProject);
+      setShowProjectWizard(false);
+      setEditingProject(null);
+
+      toast({
+        title: editingProject ? "Projeto atualizado!" : "Projeto criado!",
+        description: `${savedProject.name} foi ${editingProject ? 'atualizado' : 'criado'} com sucesso.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar projeto",
+        description: "Não foi possível salvar o projeto. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (showProjectWizard) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <ProjectWizard
+          project={editingProject || undefined}
+          onSave={handleSaveProject}
+          onCancel={() => {
+            setShowProjectWizard(false);
+            setEditingProject(null);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -52,13 +123,23 @@ export default function Home() {
           {/* Main Content Area */}
           <div className="lg:col-span-3">
             <Tabs defaultValue="generator" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="generator">Gerador de Conteúdo</TabsTrigger>
+                <TabsTrigger value="projects">Projetos MPMP</TabsTrigger>
                 <TabsTrigger value="knowledge">Base de Conhecimento</TabsTrigger>
               </TabsList>
               
               <TabsContent value="generator">
-                <ContentGenerator />
+                <ContentGenerator selectedProject={selectedProject} />
+              </TabsContent>
+              
+              <TabsContent value="projects">
+                <ProjectSelector
+                  selectedProject={selectedProject}
+                  onProjectChange={setSelectedProject}
+                  onCreateProject={handleCreateProject}
+                  onEditProject={handleEditProject}
+                />
               </TabsContent>
               
               <TabsContent value="knowledge">

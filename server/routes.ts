@@ -256,6 +256,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Projects CRUD endpoints
+  app.get("/api/projects", async (req, res) => {
+    try {
+      const userId = 1; // For now, using default user ID
+      const projects = await storage.getProjects(userId);
+      res.json(projects);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      res.status(500).json({ message: "Erro ao buscar projetos" });
+    }
+  });
+
+  app.post("/api/projects", async (req, res) => {
+    try {
+      const projectData = {
+        ...req.body,
+        userId: 1, // For now, using default user ID
+      };
+      
+      const project = await storage.createProject(projectData);
+      res.json(project);
+    } catch (error) {
+      console.error('Error creating project:', error);
+      res.status(500).json({ message: "Erro ao criar projeto" });
+    }
+  });
+
+  app.get("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const project = await storage.getProject(id);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Projeto não encontrado" });
+      }
+      
+      res.json(project);
+    } catch (error) {
+      console.error('Error fetching project:', error);
+      res.status(500).json({ message: "Erro ao buscar projeto" });
+    }
+  });
+
+  app.put("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const project = await storage.updateProject(id, req.body);
+      res.json(project);
+    } catch (error) {
+      console.error('Error updating project:', error);
+      res.status(500).json({ message: "Erro ao atualizar projeto" });
+    }
+  });
+
+  app.delete("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteProject(id);
+      res.json({ message: "Projeto removido com sucesso" });
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      res.status(500).json({ message: "Erro ao remover projeto" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

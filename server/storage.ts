@@ -78,11 +78,13 @@ export class MemStorage implements IStorage {
   async deleteProject(id: number): Promise<void> {
     this.projects.delete(id);
     // Also remove associated content generations
-    for (const [genId, generation] of this.contentGenerations.entries()) {
-      if (generation.projectId === id) {
-        this.contentGenerations.delete(genId);
-      }
-    }
+    const generationsToDelete = Array.from(this.contentGenerations.entries())
+      .filter(([_, generation]) => generation.projectId === id)
+      .map(([genId, _]) => genId);
+    
+    generationsToDelete.forEach(genId => {
+      this.contentGenerations.delete(genId);
+    });
   }
 
   async createContentGeneration(insertGeneration: InsertContentGeneration): Promise<ContentGeneration> {
