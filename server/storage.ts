@@ -5,6 +5,7 @@ import {
   type InsertContentGeneration,
   type Project,
   type InsertProject,
+  type SuccessStory,
   type HistoryItem 
 } from "@shared/schema";
 
@@ -20,19 +21,35 @@ export interface IStorage {
   createContentGeneration(generation: InsertContentGeneration): Promise<ContentGeneration>;
   getContentGenerations(limit?: number, projectId?: number): Promise<ContentGeneration[]>;
   getHistoryItems(limit?: number, projectId?: number): Promise<HistoryItem[]>;
+  
+  // Success Stories
+  getSuccessStories(filters?: {
+    search?: string;
+    industry?: string;
+    magneticCode?: string;
+    objective?: string;
+    limit?: number;
+  }): Promise<SuccessStory[]>;
+  getSuccessStory(id: number): Promise<SuccessStory | undefined>;
 }
 
 export class MemStorage implements IStorage {
   private contentGenerations: Map<number, ContentGeneration>;
   private projects: Map<number, Project>;
+  private successStories: Map<number, SuccessStory>;
   private currentContentId: number;
   private currentProjectId: number;
+  private currentStoryId: number;
 
   constructor() {
     this.contentGenerations = new Map();
     this.projects = new Map();
+    this.successStories = new Map();
     this.currentContentId = 1;
     this.currentProjectId = 1;
+    this.currentStoryId = 1;
+    
+    this.initializeSampleStories();
   }
 
   // Projects methods

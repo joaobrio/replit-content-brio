@@ -68,6 +68,25 @@ export const contentGenerations = pgTable("content_generations", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const successStories = pgTable("success_stories", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  content: text("content").notNull(),
+  magneticCode: text("magnetic_code").notNull(),
+  objective: text("objective").notNull(),
+  industry: text("industry").notNull(),
+  author: text("author").notNull(),
+  authorRole: text("author_role").notNull(),
+  authorInstagram: text("author_instagram"),
+  metrics: json("metrics"), // likes, comments, shares, reach, engagement_rate
+  tags: json("tags").default([]),
+  isFeatured: boolean("is_featured").default(false),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -84,12 +103,20 @@ export const insertContentGenerationSchema = createInsertSchema(contentGeneratio
   createdAt: true,
 });
 
+export const insertSuccessStorySchema = createInsertSchema(successStories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type ContentGeneration = typeof contentGenerations.$inferSelect;
 export type InsertContentGeneration = z.infer<typeof insertContentGenerationSchema>;
+export type SuccessStory = typeof successStories.$inferSelect;
+export type InsertSuccessStory = z.infer<typeof insertSuccessStorySchema>;
 
 // Frontend-specific types
 export interface ContentVariation {
