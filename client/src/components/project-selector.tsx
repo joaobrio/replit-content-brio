@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Settings, Briefcase, Upload, FileText, CheckCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Plus, Settings, Briefcase, Upload, FileText, CheckCircle, Type } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { type Project } from '@shared/schema';
 
@@ -22,6 +24,8 @@ export function ProjectSelector({
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [showTextDialog, setShowTextDialog] = useState(false);
+  const [mpmpText, setMpmpText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -96,6 +100,54 @@ export function ProjectSelector({
     const file = event.target.files?.[0];
     if (file) {
       handleMPMPUpload(file);
+    }
+  };
+
+  const handleTextMPMP = async () => {
+    if (!mpmpText.trim()) {
+      toast({
+        title: "Texto vazio",
+        description: "Por favor, cole o conteúdo do MPMP antes de processar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const response = await fetch('/api/projects/process-mpmp-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: mpmpText }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha no processamento do texto');
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "MPMP processado com sucesso!",
+        description: `Projeto "${result.name}" criado automaticamente a partir do texto.`,
+      });
+
+      // Recarregar projetos e selecionar o novo
+      await loadProjects();
+      onProjectChange(result);
+      setShowTextDialog(false);
+      setMpmpText('');
+
+    } catch (error) {
+      toast({
+        title: "Erro no processamento",
+        description: "Não foi possível processar o texto MPMP. Verifique o conteúdo.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -225,24 +277,86 @@ export function ProjectSelector({
               className="hidden"
             />
             
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <>
-                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                  Processando MPMP...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Fazer Upload de MPMP
-                </>
-              )}
-            </Button>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                    Processando MPMP...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload de Arquivo
+                  </>
+                )}
+              </Button>
+              
+              <Dialog open={showTextDialog} onOpenChange={setShowTextDialog}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={isUploading}
+                  >
+                    <Type className="w-4 h-4 mr-2" />
+                    Colar Texto/Markdown
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>Colar Conteúdo do MPMP</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Cole aqui o conteúdo completo do seu Manual de Posicionamento de Marca Pessoal. 
+                      Suporta texto simples, Markdown e conteúdo copiado de documentos.
+                    </p>
+                    <Textarea
+                      placeholder="Cole o conteúdo do MPMP aqui..."
+                      value={mpmpText}
+                      onChange={(e) => setMpmpText(e.target.value)}
+                      className="min-h-[400px] font-mono text-sm"
+                    />
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-500">
+                        {mpmpText.length} caracteres
+                      </span>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowTextDialog(false);
+                            setMpmpText('');
+                          }}
+                          disabled={isUploading}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={handleTextMPMP}
+                          disabled={isUploading || !mpmpText.trim()}
+                        >
+                          {isUploading ? (
+                            <>
+                              <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                              Processando...
+                            </>
+                          ) : (
+                            'Processar MPMP'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
             
             <div className="flex items-center gap-1 mt-2">
               <CheckCircle className="w-3 h-3 text-green-500" />

@@ -681,6 +681,155 @@ Seja preciso na extração e mantenha consistência com os dados do documento.`
     }
   }
 
+  // Function to split text into chunks
+  function splitTextIntoChunks(text: string, maxChunkSize: number = 100000): string[] {
+    const chunks: string[] = [];
+    let currentChunk = '';
+    const lines = text.split('\n');
+    
+    for (const line of lines) {
+      if (currentChunk.length + line.length + 1 > maxChunkSize) {
+        if (currentChunk) {
+          chunks.push(currentChunk.trim());
+          currentChunk = '';
+        }
+      }
+      currentChunk += line + '\n';
+    }
+    
+    if (currentChunk.trim()) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    return chunks;
+  }
+
+  // Function to process text content in chunks
+  async function processMPMPText(content: string) {
+    const chunks = splitTextIntoChunks(content, 100000); // 100k characters per chunk
+    let extractedData: any = {};
+    
+    for (let i = 0; i < chunks.length; i++) {
+      console.log(`Processing chunk ${i + 1}/${chunks.length}`);
+      
+      const response = await anthropic.messages.create({
+        model: 'claude-3-7-sonnet-20250219', // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: `Você é um especialista em análise de documentos de marca pessoal. Analise o seguinte conteúdo (parte ${i + 1} de ${chunks.length}) e extraia informações estruturadas para criar um projeto no sistema BRIO.IA.
+
+CONTEÚDO PARA ANÁLISE:
+${chunks[i]}
+
+${i === 0 ? `Responda APENAS com um objeto JSON válido contendo as seguintes chaves (use null para informações não encontradas nesta parte):
+
+{
+  "name": "Nome do projeto/marca pessoal",
+  "purpose": "Propósito da marca",
+  "originStory": "História de origem",
+  "mission": "Missão",
+  "archetype": "arquétipo da marca (heroi, cuidador, sabio, explorador, criador)",
+  "superpowers": ["superpower1", "superpower2"],
+  "vulnerabilities": ["vulnerability1", "vulnerability2"],
+  "mainSpecialty": "Especialidade principal",
+  "subspecialties": ["sub1", "sub2"],
+  "targetAudienceDemografia": {"idade": "faixa etária", "genero": "todos/feminino/masculino", "localizacao": ["local1"], "poderAquisitivo": "A/B/C"},
+  "targetAudiencePsicografia": {"dores": ["dor1"], "desejos": ["desejo1"], "objecoes": ["objecao1"], "gatilhos": ["gatilho1"]},
+  "differentials": ["diferencial1", "diferencial2"],
+  "methodology": "Metodologia de trabalho",
+  "typicalResults": ["resultado1", "resultado2"],
+  "guarantees": ["garantia1", "garantia2"],
+  "toneOfVoice": {"formalidade": "casual/equilibrado/formal", "energia": "calma/moderada/energetica", "proximidade": "distante/profissional/amigavel/intimo"},
+  "keywords": ["palavra1", "palavra2"],
+  "avoidWords": ["evitar1", "evitar2"],
+  "brandColors": ["#cor1", "#cor2"],
+  "visualStyle": "minimalista/colorido/profissional/moderno",
+  "mainHashtags": ["#hashtag1", "#hashtag2"],
+  "postSignature": "Assinatura dos posts",
+  "defaultBio": "Bio padrão para redes sociais"
+}` : `Responda APENAS com um objeto JSON válido contendo informações ADICIONAIS encontradas nesta parte do documento. Use null para informações não encontradas. Mantenha a mesma estrutura do objeto anterior.`}
+
+Seja preciso na extração e mantenha consistência com os dados do documento.`
+        }]
+      });
+
+      const firstContent = response.content[0];
+      if (firstContent.type !== 'text') {
+        throw new Error('Resposta inesperada da API');
+      }
+      
+      const chunkData = JSON.parse(firstContent.text);
+      
+      // Merge data from this chunk
+      for (const key in chunkData) {
+        if (chunkData[key] !== null && chunkData[key] !== undefined) {
+          if (Array.isArray(chunkData[key])) {
+            extractedData[key] = [...(extractedData[key] || []), ...chunkData[key]];
+          } else if (typeof chunkData[key] === 'object' && chunkData[key] !== null) {
+            extractedData[key] = { ...(extractedData[key] || {}), ...chunkData[key] };
+          } else {
+            extractedData[key] = chunkData[key];
+          }
+        }
+      }
+    }
+    
+    return extractedData;
+  }
+
+  // Process MPMP text route
+  app.post("/api/projects/process-mpmp-text", async (req, res) => {
+    try {
+      const { content } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: 'Conteúdo de texto é obrigatório' });
+      }
+
+      console.log(`Processing MPMP text content: ${content.length} characters`);
+      
+      const result = await processMPMPText(content);
+      
+      const projectData = {
+        name: result.name || 'Projeto MPMP',
+        userId: 1, // hardcoded for now
+        purpose: result.purpose,
+        originStory: result.originStory,
+        mission: result.mission,
+        archetype: result.archetype,
+        superpowers: result.superpowers,
+        vulnerabilities: result.vulnerabilities,
+        mainSpecialty: result.mainSpecialty,
+        subspecialties: result.subspecialties,
+        targetAudienceDemografia: result.targetAudienceDemografia,
+        targetAudiencePsicografia: result.targetAudiencePsicografia,
+        differentials: result.differentials,
+        methodology: result.methodology,
+        typicalResults: result.typicalResults,
+        guarantees: result.guarantees,
+        toneOfVoice: result.toneOfVoice,
+        keywords: result.keywords,
+        avoidWords: result.avoidWords,
+        brandColors: result.brandColors,
+        visualStyle: result.visualStyle,
+        mainHashtags: result.mainHashtags,
+        postSignature: result.postSignature,
+        defaultBio: result.defaultBio,
+        values: result // Store complete extracted data
+      };
+
+      const project = await storage.createProject(projectData);
+      res.json(project);
+    } catch (error) {
+      console.error('Error processing MPMP text:', error);
+      res.status(500).json({ 
+        error: 'Erro ao processar texto MPMP',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
   // Upload MPMP route
   app.post('/api/projects/upload-mpmp', upload.single('file'), async (req, res) => {
     try {
