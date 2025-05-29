@@ -4,15 +4,12 @@ import { storage } from "./storage";
 import { insertContentGenerationSchema, type GenerationRequest, type GenerationResponse, type ContentVariation } from "@shared/schema";
 import { z } from "zod";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-import OpenAI from 'openai';
+// the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+import Anthropic from '@anthropic-ai/sdk';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "default_key",
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || "default_key",
 });
-
-// BRIO.IA Assistant ID
-const BRIO_ASSISTANT_ID = "asst_wtGq8egImXq1UA76Gz483ksG";
 
 // 8 Códigos Magnéticos mapping
 const MAGNETIC_CODES = {
@@ -70,55 +67,40 @@ function selectBestCode(objective: string): string[] {
   return codeMapping[objective as keyof typeof codeMapping] || codeMapping['captar'];
 }
 
-// Generate content using BRIO.IA Assistant
-async function generateContentWithBrioAssistant(topic: string, code: string, objective: string): Promise<ContentVariation> {
+// Generate content using Claude Sonnet
+async function generateContentWithClaude(topic: string, code: string, objective: string): Promise<ContentVariation> {
   const codeInfo = MAGNETIC_CODES[code as keyof typeof MAGNETIC_CODES];
   
-  try {
-    // Create a thread for this conversation
-    const thread = await openai.beta.threads.create();
-    
-    // Send the message to the assistant
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "user",
-      content: `Crie conteúdo magnético sobre "${topic}" usando o código "${code}" com objetivo "${objective}". 
+  const systemPrompt = `Você é o Agente BRIO.IA, especialista em criar conteúdo magnético para profissionais de saúde usando o Método BRIO.
+
+CONTEXTO: Você está criando conteúdo sobre "${topic}" usando o código magnético "${code}".
+
+OBJETIVO: ${objective}
 
 ESTRUTURA DO CÓDIGO "${code}": ${codeInfo.structure}
 
 INSTRUÇÕES:
-- 100-200 palavras em português brasileiro
-- Aplique rigorosamente a estrutura do código magnético
-- Foco em profissionais de saúde
-- Tom ${objective === 'captar' ? 'curioso e intrigante' : objective === 'conectar' ? 'empático e pessoal' : objective === 'convencer' ? 'autoritativo e baseado em evidências' : 'persuasivo e orientado à ação'}
-- Responda APENAS com o conteúdo final`
+1. Crie um texto de 100-200 palavras em português brasileiro
+2. Use linguagem profissional mas acessível para profissionais de saúde
+3. Aplique rigorosamente a estrutura do código magnético
+4. Mantenha o foco em saúde e medicina
+5. Inclua um CTA sutil se apropriado
+6. Use tom ${objective === 'captar' ? 'curioso e intrigante' : objective === 'conectar' ? 'empático e pessoal' : objective === 'convencer' ? 'autoritativo e baseado em evidências' : 'persuasivo e orientado à ação'}
+
+Responda APENAS com o conteúdo final, sem explicações adicionais.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: `Crie conteúdo sobre: ${topic}`
+      }]
     });
 
-    // Run the assistant
-    const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: BRIO_ASSISTANT_ID
-    });
-
-    // Wait for completion
-    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-    
-    while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-    }
-
-    if (runStatus.status !== 'completed') {
-      throw new Error(`Assistant run failed with status: ${runStatus.status}`);
-    }
-
-    // Get the messages
-    const messages = await openai.beta.threads.messages.list(thread.id);
-    const lastMessage = messages.data[0];
-    
-    if (lastMessage.role !== 'assistant' || !lastMessage.content[0] || lastMessage.content[0].type !== 'text') {
-      throw new Error('Invalid response from assistant');
-    }
-
-    const content = lastMessage.content[0].text.value;
+    const content = response.content[0].type === 'text' ? response.content[0].text : '';
     const wordCount = content.split(' ').length;
     
     return {
@@ -129,7 +111,7 @@ INSTRUÇÕES:
       tone: getToneForObjective(objective)
     };
   } catch (error) {
-    console.error('Error generating content with BRIO Assistant:', error);
+    console.error('Error generating content with Claude:', error);
     throw new Error('Falha ao gerar conteúdo. Verifique a configuração da API.');
   }
 }
@@ -172,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const code of selectedCodes) {
         try {
-          const variation = await generateContentWithBrioAssistant(topic, code, objective);
+          const variation = await generateContentWithClaude(topic, code, objective);
           variations.push(variation);
           totalTokens += 300; // Estimate tokens used
         } catch (error) {

@@ -27,7 +27,7 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-600">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Claude 3 Sonnet</span>
+                <span>Claude 3.7 Sonnet</span>
               </div>
               <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-500">
                 <Clock className="w-4 h-4" />
