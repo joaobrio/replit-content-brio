@@ -13,6 +13,22 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || "default_key",
 });
 
+// Configure multer for file uploads
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Tipo de arquivo não suportado'));
+    }
+  }
+});
+
 // 8 Códigos Magnéticos mapping
 const MAGNETIC_CODES = {
   'Concordar & Contrastar': {
@@ -582,6 +598,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching projects:', error);
       res.status(500).json({ message: "Erro ao buscar projetos" });
+    }
+  });
+
+  // Process MPMP upload and extract strategic data
+  async function processMPMPFile(filePath: string, originalName: string) {
+    try {
+      const fileContent = await fs.readFile(filePath, 'utf-8');
+      
+      const response = await anthropic.messages.create({
+        model: 'claude-3-7-sonnet-20250219',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: `Analise este Manual de Posicionamento de Marca Pessoal (MPMP) e extraia as informações estratégicas em formato JSON estruturado:
+
+${fileContent}
+
+Retorne um JSON com esta estrutura exata:
+{
+  "name": "Nome do profissional/marca",
+  "mainSpecialty": "Especialidade principal",
+  "subspecialties": ["sub1", "sub2"],
+  "purpose": "Propósito/missão",
+  "originStory": "História de origem resumida",
+  "mission": "Missão específica",
+  "archetype": "heroi|cuidador|sabio|explorador|criador",
+  "superpowers": ["poder1", "poder2"],
+  "vulnerabilities": ["vuln1", "vuln2"],
+  "targetAudience": {
+    "demografia": {
+      "idade": "faixa etária",
+      "genero": "todos|feminino|masculino",
+      "localizacao": ["local1", "local2"],
+      "poderAquisitivo": "A|B|C"
+    },
+    "psicografia": {
+      "dores": ["dor1", "dor2"],
+      "desejos": ["desejo1", "desejo2"],
+      "objecoes": ["objecao1", "objecao2"],
+      "gatilhos": ["gatilho1", "gatilho2"]
+    }
+  },
+  "differentials": ["diferencial1", "diferencial2"],
+  "methodology": "Nome da metodologia",
+  "typicalResults": ["resultado1", "resultado2"],
+  "guarantees": ["garantia1", "garantia2"],
+  "toneOfVoice": {
+    "formalidade": "casual|equilibrado|formal",
+    "energia": "calma|moderada|energetica",
+    "proximidade": "distante|profissional|amigavel|intimo"
+  },
+  "keywords": ["palavra1", "palavra2"],
+  "avoidWords": ["evitar1", "evitar2"],
+  "brandColors": ["#cor1", "#cor2"],
+  "visualStyle": "minimalista|colorido|profissional|moderno",
+  "mainHashtags": ["#tag1", "#tag2"],
+  "postSignature": "Assinatura padrão dos posts",
+  "defaultBio": "Bio padrão para redes sociais"
+}
+
+Seja preciso na extração e mantenha consistência com os dados do documento.`
+        }]
+      });
+
+      const firstContent = response.content[0];
+      if (firstContent.type !== 'text') {
+        throw new Error('Resposta inesperada da API');
+      }
+      const extractedData = JSON.parse(firstContent.text);
+      
+      // Clean up uploaded file
+      await fs.unlink(filePath);
+      
+      return extractedData;
+    } catch (error) {
+      // Clean up uploaded file on error
+      try {
+        await fs.unlink(filePath);
+      } catch {}
+      throw error;
+    }
+  }
+
+  // Upload MPMP route
+  app.post('/api/projects/upload-mpmp', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Arquivo não encontrado' });
+      }
+
+      const extractedData = await processMPMPFile(req.file.path, req.file.originalname);
+      
+      // Create project with extracted data
+      const projectData = {
+        name: extractedData.name,
+        userId: 1, // Default user
+        purpose: extractedData.purpose,
+        originStory: extractedData.originStory,
+        mission: extractedData.mission,
+        archetype: extractedData.archetype,
+        superpowers: extractedData.superpowers,
+        vulnerabilities: extractedData.vulnerabilities,
+        mainSpecialty: extractedData.mainSpecialty,
+        subspecialties: extractedData.subspecialties,
+        targetAudience: extractedData.targetAudience,
+        differentials: extractedData.differentials,
+        methodology: extractedData.methodology,
+        typicalResults: extractedData.typicalResults,
+        guarantees: extractedData.guarantees,
+        toneOfVoice: extractedData.toneOfVoice,
+        keywords: extractedData.keywords,
+        avoidWords: extractedData.avoidWords,
+        brandColors: extractedData.brandColors,
+        visualStyle: extractedData.visualStyle,
+        mainHashtags: extractedData.mainHashtags,
+        postSignature: extractedData.postSignature,
+        defaultBio: extractedData.defaultBio,
+        values: extractedData // Store complete extracted data
+      };
+
+      const project = await storage.createProject(projectData);
+      res.json(project);
+    } catch (error) {
+      console.error('Error processing MPMP:', error);
+      res.status(500).json({ 
+        error: 'Erro ao processar arquivo MPMP',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   });
 
