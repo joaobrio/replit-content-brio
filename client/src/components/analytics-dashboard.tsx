@@ -211,60 +211,51 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {!selectedProject && (
+          {!selectedProject ? (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-yellow-800 text-sm">
                 ⚠️ Selecione um projeto MPMP para visualizar os analytics do Instagram
               </p>
             </div>
-          )}
-
-          {selectedProject && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 space-y-3">
-              <h4 className="font-medium text-blue-800 mb-2">📊 Dashboard Demonstrativo</h4>
-              <p className="text-blue-700 text-sm mb-3">
-                Visualização demonstrativa baseada nos dados do dashboard BRIO Analytics da @drgabrielaleimeida. 
-                Para dados reais, conecte sua conta do Instagram Business.
-              </p>
-              
-              <div className="flex gap-2">
-                <Button
-                  onClick={connectInstagram}
-                  variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
-                >
-                  <Instagram className="w-4 h-4" />
-                  Conectar Instagram Real
-                </Button>
-                <Badge className="bg-blue-100 text-blue-800">
-                  Modo Demonstração
-                </Badge>
-              </div>
-            </div>
-          )}
-
-          {selectedProject && (
-            <div className="flex items-center justify-between">
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                <h4 className="font-medium text-purple-900 mb-1">Projeto: {selectedProject.name}</h4>
-                <p className="text-sm text-purple-700">
-                  Especialidade: {selectedProject.mainSpecialty || 'Não definida'}
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-800 mb-2">📊 Dashboard Demonstrativo</h4>
+                <p className="text-blue-700 text-sm mb-3">
+                  Visualização demonstrativa baseada nos dados do dashboard BRIO Analytics da @drgabrielaleimeida. 
+                  Para dados reais, conecte sua conta do Instagram Business.
                 </p>
+                
+                <div className="flex gap-2">
+                  <Button
+                    onClick={connectInstagram}
+                    variant="outline"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                  >
+                    <Instagram className="w-4 h-4" />
+                    Conectar Instagram Real
+                  </Button>
+                  <Badge className="bg-blue-100 text-blue-800">
+                    Modo Demonstração
+                  </Badge>
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={refreshData}
-                  disabled={isLoading}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  {isLoading ? 'Atualizando...' : 'Atualizar Dados'}
-                </Button>
+              <div className="flex items-center justify-between">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                  <p className="text-sm text-purple-700">
+                    <span className="font-medium">Projeto Ativo:</span> {selectedProject.name}
+                  </p>
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  Última atualização: {new Date(mockMetrics.last_updated).toLocaleString('pt-BR')}
+                </div>
               </div>
             </div>
           )}
+
+
         </CardContent>
       </Card>
 
