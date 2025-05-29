@@ -263,16 +263,16 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
       {selectedProject && (
         <div className="space-y-6">
           {/* Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-blue-500 rounded-lg">
-                    <Users className="w-6 h-6 text-white" />
+              <CardContent className="p-3 sm:p-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-2 sm:p-3 bg-blue-500 rounded-lg">
+                    <Users className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-blue-600 font-medium">Seguidores</p>
-                    <p className="text-2xl font-bold text-blue-900">
+                    <p className="text-xs sm:text-sm text-blue-600 font-medium">Seguidores</p>
+                    <p className="text-lg sm:text-2xl font-bold text-blue-900">
                       {mockMetrics.followers.toLocaleString()}
                     </p>
                   </div>
@@ -281,14 +281,17 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
             </Card>
 
             <Card className="bg-gradient-to-br from-green-50 to-green-100">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-green-500 rounded-lg">
-                    <Heart className="w-6 h-6 text-white" />
+              <CardContent className="p-3 sm:p-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-2 sm:p-3 bg-green-500 rounded-lg">
+                    <Heart className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-green-600 font-medium">Taxa Engajamento</p>
-                    <p className="text-2xl font-bold text-green-900">
+                    <p className="text-xs sm:text-sm text-green-600 font-medium">
+                      <span className="hidden sm:inline">Taxa Engajamento</span>
+                      <span className="sm:hidden">Engajamento</span>
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-green-900">
                       {mockMetrics.engagement_rate}%
                     </p>
                   </div>
@@ -297,14 +300,14 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
             </Card>
 
             <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-purple-500 rounded-lg">
-                    <Award className="w-6 h-6 text-white" />
+              <CardContent className="p-3 sm:p-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-2 sm:p-3 bg-purple-500 rounded-lg">
+                    <Award className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-purple-600 font-medium">Score BRIO</p>
-                    <p className="text-2xl font-bold text-purple-900">
+                    <p className="text-xs sm:text-sm text-purple-600 font-medium">Score BRIO</p>
+                    <p className="text-lg sm:text-2xl font-bold text-purple-900">
                       {mockMetrics.brio_score}/100
                     </p>
                   </div>
@@ -312,15 +315,18 @@ export function AnalyticsDashboard({ selectedProject }: AnalyticsDashboardProps)
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-orange-500 rounded-lg">
-                    <TrendingUp className="w-6 h-6 text-white" />
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 col-span-2 lg:col-span-1">
+              <CardContent className="p-3 sm:p-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-2 sm:p-3 bg-orange-500 rounded-lg">
+                    <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                   </div>
                   <div>
-                    <p className="text-sm text-orange-600 font-medium">Potencial Crescimento</p>
-                    <p className="text-2xl font-bold text-orange-900">
+                    <p className="text-xs sm:text-sm text-orange-600 font-medium">
+                      <span className="hidden sm:inline">Potencial Crescimento</span>
+                      <span className="sm:hidden">Crescimento</span>
+                    </p>
+                    <p className="text-lg sm:text-2xl font-bold text-orange-900">
                       +{mockMetrics.growth_potential}%
                     </p>
                   </div>

@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-first responsive improvements */
+@layer utilities {
+  /* Hide scrollbars but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Better touch targets for mobile */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smooth animations for mobile */
+  .mobile-smooth {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Safe area padding for devices with notches */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 :root {
   /* BRIO.IA Color Scheme */
   --background: 0 0% 98%; /* #FAFAFA */

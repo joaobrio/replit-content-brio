@@ -54,15 +54,17 @@ export function ContentGenerator() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Input Form */}
-      <Card className="bg-white rounded-2xl shadow-sm border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-xl font-bold text-gray-900">
-            Gerador de Conteúdo Magnético
+      <Card className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-200">
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">
+            <span className="hidden sm:inline">Gerador de Conteúdo Magnético</span>
+            <span className="sm:hidden">Gerador Magnético</span>
           </CardTitle>
-          <p className="text-gray-600">
-            Descreva o tema que deseja abordar e receba 3 variações usando os 8 Códigos Magnéticos
+          <p className="text-sm sm:text-base text-gray-600">
+            <span className="hidden sm:inline">Descreva o tema que deseja abordar e receba 3 variações usando os 8 Códigos Magnéticos</span>
+            <span className="sm:hidden">Descreva seu tema e receba variações magnéticas</span>
           </p>
         </CardHeader>
         
@@ -70,24 +72,25 @@ export function ContentGenerator() {
           {/* Topic Input */}
           <div>
             <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
-              Descreva o tema do seu conteúdo
+              <span className="hidden sm:inline">Descreva o tema do seu conteúdo</span>
+              <span className="sm:hidden">Tema do conteúdo</span>
             </label>
             <Textarea
               id="topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Ex: Como reduzir ansiedade sem medicamentos usando técnicas de respiração..."
-              className="w-full min-h-[80px] resize-none border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Ex: Como reduzir ansiedade sem medicamentos..."
+              className="w-full min-h-[80px] sm:min-h-[100px] resize-none border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
               disabled={isGenerating}
             />
           </div>
 
           {/* Objective Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 mb-2 sm:mb-3">
               Objetivo (opcional)
             </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               {Object.entries(OBJECTIVES).map(([key, obj]) => {
                 const Icon = getObjectiveIcon(key);
                 const isSelected = selectedObjective === key;
@@ -96,17 +99,17 @@ export function ContentGenerator() {
                   <Button
                     key={key}
                     variant={isSelected ? "default" : "outline"}
-                    className={`p-3 h-auto flex flex-col items-center space-y-1 transition-all ${
+                    className={`p-2 sm:p-3 h-auto flex flex-col items-center space-y-1 transition-all ${
                       isSelected 
-                        ? 'bg-blue-500 border-blue-500 text-white hover:bg-blue-600' 
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 border-purple-500 text-white hover:from-purple-600 hover:to-blue-600' 
+                        : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
                     }`}
                     onClick={() => setSelectedObjective(isSelected ? null : key)}
                     disabled={isGenerating}
                   >
-                    <Icon className="w-5 h-5" />
-                    <div className="text-sm font-medium">{obj.name}</div>
-                    <div className="text-xs opacity-75">{obj.description}</div>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <div className="text-xs sm:text-sm font-medium text-center leading-tight">{obj.name}</div>
+                    <div className="text-[10px] sm:text-xs opacity-75 text-center leading-tight hidden sm:block">{obj.description}</div>
                   </Button>
                 );
               })}
