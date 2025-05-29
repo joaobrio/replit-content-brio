@@ -441,6 +441,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Story generation function
+  async function generateStorySlides(params: {
+    project: any;
+    framework: string;
+    objective: string;
+    magneticCode: string;
+    title: string;
+  }) {
+    const { project, framework, objective, magneticCode, title } = params;
+
+    const frameworkStructures: Record<string, string[]> = {
+      "5R": [
+        "Relevância - Quem sou eu?",
+        "Reflexão - Que transformação posso provocar?",
+        "Relacionamento - Como gero identificação?",
+        "Repertório - Como educo meu público?",
+        "Resultado - Como atrair o público ideal?"
+      ],
+      "VLOG": [
+        "Abertura - Hook inicial",
+        "Desenvolvimento - Narrativa pessoal",
+        "Clímax - Momento de transformação",
+        "Fechamento - Reflexão e conexão"
+      ],
+      "TRANSFORMATION": [
+        "Situação inicial - Problema/dor",
+        "Contexto - Dificuldades enfrentadas",
+        "Solução - Intervenção aplicada",
+        "Processo - Jornada de transformação",
+        "Resultado - Conquista alcançada",
+        "Aprendizado - Lição para o público"
+      ],
+      "CONTRAPOPULAR": [
+        "Mito popular - O que todo mundo acredita",
+        "Ruptura - Por que isso está errado",
+        "Evidência - Dados e experiência",
+        "Verdade - O que realmente funciona",
+        "Ação - O que fazer na prática"
+      ],
+      "RITUAL": [
+        "Problema - Dificuldade comum",
+        "Solução - Ritual proposto",
+        "Como fazer - Passo a passo",
+        "Benefícios - Resultados esperados"
+      ]
+    };
+
+    const structure = frameworkStructures[framework] || frameworkStructures["5R"];
+    const slides = [];
+
+    for (let i = 0; i < structure.length; i++) {
+      const slidePrompt = `
+        Você é um especialista em criar stories seguindo o Método Único de Stories (MUS) do BRIO.
+        
+        Contexto do profissional:
+        - Nome: ${project.name}
+        - Propósito: ${project.purpose || 'Não informado'}
+        - Especialidade: ${project.mainSpecialty || 'Não informado'}
+        - Tom de voz: ${project.toneOfVoice || 'Profissional e acessível'}
+        
+        Crie conteúdo para o slide ${i + 1} de um story seguindo:
+        - Framework: ${framework}
+        - Título do story: ${title}
+        - Objetivo: ${objective}
+        - Código Magnético: ${magneticCode}
+        - Estrutura do slide: ${structure[i]}
+        
+        Diretrizes:
+        - Título: máximo 25 caracteres
+        - Texto: máximo 120 caracteres para mobile
+        - Linguagem para stories (informal mas profissional)
+        - Incluir elementos de engajamento
+        - Seguir a metodologia BRIO
+        
+        Retorne APENAS um JSON com:
+        {
+          "headline": "Título impactante e curto",
+          "body": "Texto principal do slide",
+          "duration": 4
+        }
+      `;
+
+      try {
+        const response = await anthropic.messages.create({
+          model: 'claude-3-7-sonnet-20250219',
+          max_tokens: 300,
+          messages: [{ role: 'user', content: slidePrompt }],
+        });
+
+        const content = response.content[0];
+        if (content.type === 'text') {
+          const slideData = JSON.parse(content.text);
+          slides.push({
+            id: `slide-${i + 1}`,
+            order: i + 1,
+            type: 'text',
+            content: {
+              headline: slideData.headline,
+              body: slideData.body,
+              backgroundType: 'gradient',
+              backgroundColor: '#667eea',
+              textColor: '#ffffff',
+              duration: slideData.duration || 4,
+              elements: []
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error generating slide:', error);
+        // Fallback slide
+        slides.push({
+          id: `slide-${i + 1}`,
+          order: i + 1,
+          type: 'text',
+          content: {
+            headline: `Slide ${i + 1}`,
+            body: structure[i],
+            backgroundType: 'gradient',
+            backgroundColor: '#667eea',
+            textColor: '#ffffff',
+            duration: 4,
+            elements: []
+          }
+        });
+      }
+    }
+
+    return slides;
+  }
+
   // Projects CRUD endpoints
   app.get("/api/projects", async (req, res) => {
     try {
