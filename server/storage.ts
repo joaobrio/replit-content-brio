@@ -151,6 +151,115 @@ export class MemStorage implements IStorage {
       };
     });
   }
+
+  // Success Stories methods
+  private initializeSampleStories() {
+    const sampleStories: SuccessStory[] = [
+      {
+        id: 1,
+        title: "Estratégia de conteúdo que triplicou engajamento em consultoria",
+        description: "Case real de como usar o código 'Confirmação de Suspeitas' aumentou significativamente a interação.",
+        content: "Muitos consultores fazem o mesmo erro: focam em vender sem confirmar o que o cliente já suspeita. Quando comecei a usar essa abordagem nos meus posts, tudo mudou...",
+        magneticCode: "Confirmação de Suspeitas",
+        objective: "convencer",
+        industry: "consultoria",
+        author: "Mariana Silva",
+        authorRole: "Consultora de Marketing Digital",
+        authorInstagram: "mariana_marketing",
+        metrics: {
+          likes: 2400,
+          comments: 156,
+          shares: 78,
+          reach: 18500,
+          engagement_rate: 14.2
+        },
+        tags: ["consultoria", "marketing", "engajamento"],
+        isFeatured: true,
+        imageUrl: null,
+        createdAt: new Date('2024-01-15'),
+        updatedAt: new Date('2024-01-15')
+      },
+      {
+        id: 2,
+        title: "História pessoal que conectou com 50mil seguidores",
+        description: "Como compartilhar vulnerabilidade de forma estratégica gerou conexão profunda com a audiência.",
+        content: "Nunca pensei que contar sobre minha síndrome do impostor ia gerar tanto engajamento. Mas quando você se mostra humano, as pessoas se identificam...",
+        magneticCode: "História Pessoal",
+        objective: "conectar",
+        industry: "educacao",
+        author: "Prof. Carlos Mendes",
+        authorRole: "Educador e Coach",
+        authorInstagram: "prof_carlosmendes",
+        metrics: {
+          likes: 1800,
+          comments: 234,
+          shares: 145,
+          reach: 25000,
+          engagement_rate: 8.7
+        },
+        tags: ["educação", "coaching", "desenvolvimento"],
+        isFeatured: true,
+        imageUrl: null,
+        createdAt: new Date('2024-01-14'),
+        updatedAt: new Date('2024-01-14')
+      }
+    ];
+
+    sampleStories.forEach(story => {
+      this.successStories.set(story.id, story);
+      if (story.id >= this.currentStoryId) {
+        this.currentStoryId = story.id + 1;
+      }
+    });
+  }
+
+  async getSuccessStories(filters?: {
+    search?: string;
+    industry?: string;
+    magneticCode?: string;
+    objective?: string;
+    limit?: number;
+  }): Promise<SuccessStory[]> {
+    let stories = Array.from(this.successStories.values());
+
+    if (filters?.search) {
+      const searchTerm = filters.search.toLowerCase();
+      stories = stories.filter(story =>
+        story.title.toLowerCase().includes(searchTerm) ||
+        story.description.toLowerCase().includes(searchTerm) ||
+        story.content.toLowerCase().includes(searchTerm) ||
+        story.author.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    if (filters?.industry) {
+      stories = stories.filter(story => story.industry === filters.industry);
+    }
+
+    if (filters?.magneticCode) {
+      stories = stories.filter(story => story.magneticCode === filters.magneticCode);
+    }
+
+    if (filters?.objective) {
+      stories = stories.filter(story => story.objective === filters.objective);
+    }
+
+    stories.sort((a, b) => {
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    if (filters?.limit) {
+      stories = stories.slice(0, filters.limit);
+    }
+
+    return stories;
+  }
+
+  async getSuccessStory(id: number): Promise<SuccessStory | undefined> {
+    return this.successStories.get(id);
+  }
 }
 
 export const storage = new MemStorage();

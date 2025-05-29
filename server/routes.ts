@@ -563,6 +563,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Success Stories endpoints
+  app.get('/api/success-stories', async (req, res) => {
+    try {
+      const filters = {
+        search: req.query.search as string,
+        industry: req.query.industry as string,
+        magneticCode: req.query.magneticCode as string,
+        objective: req.query.objective as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined
+      };
+
+      const stories = await storage.getSuccessStories(filters);
+      res.json(stories);
+    } catch (error) {
+      console.error('Error fetching success stories:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.get('/api/success-stories/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const story = await storage.getSuccessStory(id);
+      
+      if (!story) {
+        return res.status(404).json({ error: 'Success story not found' });
+      }
+      
+      res.json(story);
+    } catch (error) {
+      console.error('Error fetching success story:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
