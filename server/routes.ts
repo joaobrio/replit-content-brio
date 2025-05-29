@@ -201,6 +201,116 @@ function getToneForObjective(objective: string): string {
   return tones[objective as keyof typeof tones] || 'Profissional';
 }
 
+// Editorial Calendar Generator Functions
+async function generateEditorialCalendar(project: any, month: number, year: number) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const suggestions = [];
+
+  // Estratégia de distribuição dos 4Cs
+  const weeklyPattern = {
+    1: 'convencer', // Segunda - Educação e autoridade
+    2: 'convencer', // Terça - Educação e autoridade  
+    3: 'conectar',  // Quarta - Conexão e histórias
+    4: 'conectar',  // Quinta - Conexão e histórias
+    5: 'converter', // Sexta - Transformação e resultados
+    6: 'captar',    // Sábado - Curiosidade e engajamento
+    0: 'captar'     // Domingo - Curiosidade e engajamento
+  };
+
+  const codes = Object.keys(MAGNETIC_CODES);
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month - 1, day);
+    const dayOfWeek = date.getDay();
+    const objective = weeklyPattern[dayOfWeek as keyof typeof weeklyPattern];
+    
+    // Seleciona código baseado no objetivo
+    const availableCodes = selectBestCode(objective);
+    const code = availableCodes[day % availableCodes.length];
+    
+    const suggestion = await generateSingleSuggestion(project, date.toISOString(), objective, code);
+    suggestions.push(suggestion);
+  }
+
+  return suggestions;
+}
+
+async function generateSingleSuggestion(project: any, dateStr: string, objective: string, code: string) {
+  const date = new Date(dateStr);
+  const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  
+  const editorialLines = {
+    'captar': 'Curiosidade e questionamentos que desafiam o senso comum',
+    'conectar': 'Histórias pessoais e conexão emocional com o público',
+    'convencer': 'Educação técnica e demonstração de autoridade',
+    'converter': 'Chamadas para ação e apresentação de soluções'
+  };
+
+  const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+  });
+
+  const codeInfo = MAGNETIC_CODES[code as keyof typeof MAGNETIC_CODES];
+  
+  const prompt = `Como Mariana Dias, crie uma sugestão de conteúdo para calendário editorial.
+
+CONTEXTO DO PROJETO:
+- Nome: ${project.name}
+- Especialidade: ${project.mainSpecialty || 'Não definida'}
+- Propósito: ${project.purpose || 'Não definido'}
+- Valores: ${Array.isArray(project.values) ? (project.values as string[]).join(', ') : 'Não definidos'}
+
+PARÂMETROS DO CONTEÚDO:
+- Data: ${dayNames[date.getDay()]}, ${date.getDate()}
+- Objetivo: ${objective.toUpperCase()}
+- Código Magnético: ${code}
+- Linha Editorial: ${editorialLines[objective as keyof typeof editorialLines]}
+
+ESTRUTURA DO CÓDIGO "${code}": ${codeInfo.structure}
+
+INSTRUÇÕES:
+1. Crie uma sugestão de conteúdo de 1-2 frases que seja específica e acionável
+2. Aplique o código magnético de forma sutil mas eficaz
+3. Mantenha o foco na especialidade do projeto
+4. Use linguagem apropriada para ${objective}
+5. Seja específico sobre o que abordar, não genérico
+
+Responda APENAS com a sugestão de conteúdo, sem explicações.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const suggestion = response.content[0].type === 'text' ? response.content[0].text : '';
+
+    return {
+      id: `${date.getTime()}-${Math.random().toString(36).substr(2, 9)}`,
+      date: dateStr,
+      dayOfWeek: dayNames[date.getDay()],
+      objective: objective as 'captar' | 'conectar' | 'convencer' | 'converter',
+      code,
+      editorialLine: editorialLines[objective as keyof typeof editorialLines],
+      suggestion: suggestion.trim()
+    };
+  } catch (error) {
+    console.error('Error generating calendar suggestion:', error);
+    
+    // Fallback suggestion se a API falhar
+    return {
+      id: `${date.getTime()}-${Math.random().toString(36).substr(2, 9)}`,
+      date: dateStr,
+      dayOfWeek: dayNames[date.getDay()],
+      objective: objective as 'captar' | 'conectar' | 'convencer' | 'converter',
+      code,
+      editorialLine: editorialLines[objective as keyof typeof editorialLines],
+      suggestion: `Conteúdo sobre ${project.mainSpecialty || 'sua área'} usando ${code} para ${objective}`
+    };
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Generate content endpoint
   app.post("/api/generate", async (req, res) => {
@@ -393,6 +503,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting project:', error);
       res.status(500).json({ message: "Erro ao remover projeto" });
+    }
+  });
+
+  // Editorial Calendar endpoints
+  app.post("/api/editorial-calendar", async (req, res) => {
+    try {
+      const { projectId, month, year } = req.body;
+      
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Projeto não encontrado" });
+      }
+
+      const calendar = await generateEditorialCalendar(project, month, year);
+      res.json(calendar);
+    } catch (error) {
+      console.error('Error generating editorial calendar:', error);
+      res.status(500).json({ message: "Erro ao gerar calendário editorial" });
+    }
+  });
+
+  app.post("/api/editorial-calendar/regenerate", async (req, res) => {
+    try {
+      const { projectId, date, objective, code } = req.body;
+      
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Projeto não encontrado" });
+      }
+
+      const newSuggestion = await generateSingleSuggestion(project, date, objective, code);
+      res.json(newSuggestion);
+    } catch (error) {
+      console.error('Error regenerating suggestion:', error);
+      res.status(500).json({ message: "Erro ao regenerar sugestão" });
     }
   });
 
