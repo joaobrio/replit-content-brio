@@ -51,7 +51,7 @@ export function StoriesModule({ selectedProject }: StoriesModuleProps) {
   const queryClient = useQueryClient();
 
   // Fetch existing stories
-  const { data: stories = [], isLoading } = useQuery({
+  const { data: stories = [], isLoading } = useQuery<StoryProject[]>({
     queryKey: ['/api/stories', selectedProject?.id],
     enabled: !!selectedProject?.id
   });
@@ -65,10 +65,19 @@ export function StoriesModule({ selectedProject }: StoriesModuleProps) {
       objective: string;
       magneticCode: string;
     }) => {
-      return await apiRequest('/api/stories/generate', {
+      const response = await fetch('/api/stories/generate', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(data)
       });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao gerar story');
+      }
+      
+      return await response.json();
     },
     onSuccess: (data) => {
       setGeneratedSlides(data.slides);
@@ -233,7 +242,7 @@ export function StoriesModule({ selectedProject }: StoriesModuleProps) {
               </h4>
               <p className="text-sm text-gray-600 mb-3">{objective.description}</p>
               <Badge variant="outline" className="text-xs">
-                {objective.strategy}
+                {objective.description}
               </Badge>
             </CardContent>
           </Card>
@@ -350,7 +359,7 @@ export function StoriesModule({ selectedProject }: StoriesModuleProps) {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Objetivo:</span>
-                <span className="font-medium">{OBJECTIVES[selectedObjective]?.name}</span>
+                <span className="font-medium">{selectedObjective && OBJECTIVES[selectedObjective as keyof typeof OBJECTIVES]?.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Framework:</span>
@@ -571,7 +580,7 @@ export function StoriesModule({ selectedProject }: StoriesModuleProps) {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {stories.map((story: StoryProject) => (
+                  {stories.map((story) => (
                     <Card key={story.id} className="hover:shadow-lg transition-shadow">
                       <CardContent className="p-4">
                         <h4 className="font-medium mb-2">{story.title}</h4>
@@ -580,7 +589,7 @@ export function StoriesModule({ selectedProject }: StoriesModuleProps) {
                           <Badge variant="secondary">{story.objective}</Badge>
                         </div>
                         <p className="text-sm text-gray-600 mb-3">
-                          {story.slides.length} slides
+                          {Array.isArray(story.slides) ? story.slides.length : 0} slides
                         </p>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline">
