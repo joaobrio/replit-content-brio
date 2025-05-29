@@ -5,6 +5,7 @@ import { KnowledgeUpload } from '@/components/knowledge-upload';
 import { ProjectSelector } from '@/components/project-selector';
 import { ProjectWizard } from '@/components/project-wizard';
 import { EditorialCalendar } from '@/components/editorial-calendar';
+import { AnalyticsDashboard } from '@/components/analytics-dashboard';
 import { Clock, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -124,9 +125,10 @@ export default function Home() {
           {/* Main Content Area */}
           <div className="lg:col-span-3">
             <Tabs defaultValue="generator" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="generator">Gerador de Conteúdo</TabsTrigger>
                 <TabsTrigger value="calendar">Calendário Editorial</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
                 <TabsTrigger value="projects">Projetos MPMP</TabsTrigger>
                 <TabsTrigger value="knowledge">Base de Conhecimento</TabsTrigger>
               </TabsList>
@@ -137,6 +139,10 @@ export default function Home() {
               
               <TabsContent value="calendar">
                 <EditorialCalendar selectedProject={selectedProject} />
+              </TabsContent>
+              
+              <TabsContent value="analytics">
+                <AnalyticsDashboard selectedProject={selectedProject} />
               </TabsContent>
               
               <TabsContent value="projects">
