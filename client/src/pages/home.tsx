@@ -224,33 +224,41 @@ export default function Home() {
           sidebarCollapsed ? "w-16" : "w-72"
         )}>
           {/* Header */}
-          <div className="p-4 border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className={cn(
-                "flex items-center gap-3 transition-opacity duration-300",
-                sidebarCollapsed ? "opacity-0" : "opacity-100"
-              )}>
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold">B</span>
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">BRIO.IA</h1>
-                  <p className="text-sm text-gray-600">Conteúdo Magnético</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="h-8 w-8 p-0"
-              >
-                {sidebarCollapsed ? (
+          <div className={cn("border-b border-gray-100", sidebarCollapsed ? "p-2" : "p-4")}>
+            {sidebarCollapsed ? (
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarCollapsed(false)}
+                  className="h-8 w-8 p-0"
+                  title="Expandir menu"
+                >
                   <ChevronRight className="h-4 w-4" />
-                ) : (
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white font-bold">B</span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">BRIO.IA</h1>
+                    <p className="text-sm text-gray-600">Conteúdo Magnético</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="h-8 w-8 p-0"
+                  title="Minimizar menu"
+                >
                   <ChevronLeft className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Navigation */}
