@@ -1,6 +1,9 @@
 import { 
+  users,
   contentGenerations,
   projects,
+  type User,
+  type UpsertUser,
   type ContentGeneration, 
   type InsertContentGeneration,
   type Project,
@@ -12,17 +15,21 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
+  // User operations (mandatory for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
   // Projects
   createProject(project: InsertProject): Promise<Project>;
-  getProjects(userId: number): Promise<Project[]>;
+  getProjects(userId: string): Promise<Project[]>;
   getProject(id: number): Promise<Project | undefined>;
   updateProject(id: number, project: Partial<InsertProject>): Promise<Project>;
   deleteProject(id: number): Promise<void>;
   
   // Content Generations
   createContentGeneration(generation: InsertContentGeneration): Promise<ContentGeneration>;
-  getContentGenerations(limit?: number, projectId?: number): Promise<ContentGeneration[]>;
-  getHistoryItems(limit?: number, projectId?: number): Promise<HistoryItem[]>;
+  getContentGenerations(limit?: number, projectId?: number, userId?: string): Promise<ContentGeneration[]>;
+  getHistoryItems(limit?: number, projectId?: number, userId?: string): Promise<HistoryItem[]>;
   
   // Success Stories
   getSuccessStories(filters?: {
@@ -43,6 +50,7 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User>;
   private contentGenerations: Map<number, ContentGeneration>;
   private projects: Map<number, Project>;
   private successStories: Map<number, SuccessStory>;
@@ -53,6 +61,7 @@ export class MemStorage implements IStorage {
   private currentStoryProjectId: number;
 
   constructor() {
+    this.users = new Map();
     this.contentGenerations = new Map();
     this.projects = new Map();
     this.successStories = new Map();
@@ -63,6 +72,25 @@ export class MemStorage implements IStorage {
     this.currentStoryProjectId = 1;
     
     this.initializeSampleStories();
+  }
+
+  // User operations (mandatory for Replit Auth)
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const now = new Date();
+    const existingUser = this.users.get(userData.id);
+    
+    const user: User = {
+      ...userData,
+      createdAt: existingUser?.createdAt || now,
+      updatedAt: now,
+    };
+    
+    this.users.set(userData.id, user);
+    return user;
   }
 
   // Projects methods
@@ -79,7 +107,7 @@ export class MemStorage implements IStorage {
     return project;
   }
 
-  async getProjects(userId: number): Promise<Project[]> {
+  async getProjects(userId: string): Promise<Project[]> {
     return Array.from(this.projects.values())
       .filter(project => project.userId === userId)
       .sort((a, b) => (b.updatedAt?.getTime() || 0) - (a.updatedAt?.getTime() || 0));
