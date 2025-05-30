@@ -19,11 +19,15 @@ import {
   Upload,
   Folder,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { type Project, type InsertProject } from '@shared/schema';
+import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
 const navigation = [
@@ -77,6 +81,7 @@ export default function Home() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState('generator');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleCreateProject = () => {
@@ -169,12 +174,52 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className={cn(
-        "bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
-        sidebarCollapsed ? "w-16" : "w-72"
-      )}>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold text-gray-900">
+            BRIO<span className="text-purple-600">.IA</span>
+          </h1>
+        </div>
+        <div className="flex items-center space-x-4">
+          {user && (
+            <>
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.profileImageUrl || undefined} />
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-gray-900">
+                    {user.firstName || user.email || 'Usuário'}
+                  </p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = "/api/logout"}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sair</span>
+              </Button>
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex">
+        {/* Sidebar */}
+        <div className={cn(
+          "bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
+          sidebarCollapsed ? "w-16" : "w-72"
+        )}>
         {/* Header */}
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
@@ -283,6 +328,7 @@ export default function Home() {
         <div className="p-4">
           <HistorySidebar />
         </div>
+      </div>
       </div>
     </div>
   );
