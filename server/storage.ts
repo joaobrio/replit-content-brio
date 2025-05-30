@@ -181,7 +181,7 @@ export class MemStorage implements IStorage {
     return generations;
   }
 
-  async getHistoryItems(limit: number = 10, projectId?: number): Promise<HistoryItem[]> {
+  async getHistoryItems(limit: number = 10, projectId?: number, userId?: string): Promise<HistoryItem[]> {
     const generations = await this.getContentGenerations(limit, projectId);
     
     return generations.map(gen => {

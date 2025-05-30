@@ -391,7 +391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const generationTime = Date.now() - startTime;
 
       // Save to storage
-      const userId = req.user?.claims?.sub || 'demo-user';
+      const userId = (req as any).user.claims.sub;
       const contentGeneration = await storage.createContentGeneration({
         userId,
         projectId: null, // Will be updated when projects are implemented
@@ -427,7 +427,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/history", isAuthenticated, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const userId = req.user?.claims?.sub;
+      const userId = (req as any).user.claims.sub;
       const history = await storage.getHistoryItems(limit, undefined, userId);
       res.json(history);
     } catch (error) {
