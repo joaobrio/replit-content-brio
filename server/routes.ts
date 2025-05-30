@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertContentGenerationSchema, type GenerationRequest, type GenerationResponse, type ContentVariation } from "@shared/schema";
 import { z } from "zod";
 import multer from 'multer';
@@ -330,8 +331,23 @@ Responda APENAS com a sugestão de conteúdo, sem explicações.`;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Generate content endpoint
-  app.post("/api/generate", async (req, res) => {
+  app.post("/api/generate", isAuthenticated, async (req, res) => {
     try {
       const validationResult = z.object({
         topic: z.string().min(1, "Tema é obrigatório"),
@@ -375,8 +391,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const generationTime = Date.now() - startTime;
 
       // Save to storage
+      const userId = req.user?.claims?.sub || 'demo-user';
       const contentGeneration = await storage.createContentGeneration({
-        userId: 1, // For now, using default user ID
+        userId,
         projectId: null, // Will be updated when projects are implemented
         topic,
         objective,
@@ -407,10 +424,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get history endpoint
-  app.get("/api/history", async (req, res) => {
+  app.get("/api/history", isAuthenticated, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const history = await storage.getHistoryItems(limit);
+      const userId = req.user?.claims?.sub;
+      const history = await storage.getHistoryItems(limit, undefined, userId);
       res.json(history);
     } catch (error) {
       console.error('Error in /api/history:', error);
@@ -590,9 +608,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Projects CRUD endpoints
-  app.get("/api/projects", async (req, res) => {
+  app.get("/api/projects", isAuthenticated, async (req, res) => {
     try {
-      const userId = 1; // For now, using default user ID
+      const userId = (req as any).user.claims.sub;
       const projects = await storage.getProjects(userId);
       res.json(projects);
     } catch (error) {
