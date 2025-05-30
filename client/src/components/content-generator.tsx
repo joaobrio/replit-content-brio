@@ -7,6 +7,7 @@ import { Sparkles, Loader2, Target, Heart, Lightbulb, Crosshair } from 'lucide-r
 import { useBrioStore } from '@/lib/zustand-store';
 import { OBJECTIVES } from '@/lib/magnetic-codes';
 import { GeneratedContentCard } from './generated-content-card';
+import { GenerationProgress } from './generation-progress';
 import { useToast } from '@/hooks/use-toast';
 
 export function ContentGenerator() {
@@ -137,21 +138,9 @@ export function ContentGenerator() {
         </CardContent>
       </Card>
 
-      {/* Loading State */}
+      {/* Generation Progress */}
       {isGenerating && (
-        <Card className="bg-white rounded-2xl shadow-sm border border-gray-200">
-          <CardContent className="p-8">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Criando conteúdo magnético...
-              </h3>
-              <p className="text-gray-600">
-                Analisando objetivo e selecionando os melhores códigos
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <GenerationProgress isGenerating={isGenerating} />
       )}
 
       {/* Generated Results */}
