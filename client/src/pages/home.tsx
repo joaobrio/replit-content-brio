@@ -202,7 +202,10 @@ export default function Home() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.location.href = "/api/logout"}
+                onClick={() => {
+                  localStorage.removeItem('brioia_user');
+                  window.location.reload();
+                }}
                 className="flex items-center space-x-2"
               >
                 <LogOut className="h-4 w-4" />
