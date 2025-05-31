@@ -1,15 +1,13 @@
-const fs = require('fs');
-
-// Criar arquivo de teste
-fs.writeFileSync('teste.txt', 'Teste de upload Cloudinary - BRIO.IA - ' + new Date().toISOString());
-
-// Importar o serviço
-const { UploadService } = require('./services/uploadService');
+import fs from 'fs';
+import { UploadService } from './services/uploadService.js';
 
 // Função de teste
 async function testCloudinary() {
   try {
     console.log('🚀 Testando upload para Cloudinary...\n');
+    
+    // Criar arquivo de teste
+    fs.writeFileSync('teste.txt', 'Teste de upload Cloudinary - BRIO.IA - ' + new Date().toISOString());
     
     // Ler o arquivo
     const fileBuffer = fs.readFileSync('teste.txt');
