@@ -22,14 +22,14 @@ export function GenerationProgress({ isGenerating, onComplete }: GenerationProgr
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [estimatedTotal, setEstimatedTotal] = useState(45);
+  const [estimatedTotal, setEstimatedTotal] = useState(20);
 
   const steps: GenerationStep[] = [
     {
       id: 'analyzing',
       label: 'Analisando o tema',
       description: 'Processando e compreendendo o contexto do seu conteúdo',
-      estimatedTime: 8,
+      estimatedTime: 3,
       completed: false,
       active: false
     },
@@ -37,23 +37,23 @@ export function GenerationProgress({ isGenerating, onComplete }: GenerationProgr
       id: 'selecting-codes',
       label: 'Selecionando códigos magnéticos',
       description: 'Escolhendo os melhores códigos para o seu objetivo',
-      estimatedTime: 12,
+      estimatedTime: 2,
       completed: false,
       active: false
     },
     {
       id: 'generating-content',
-      label: 'Gerando variações',
-      description: 'Criando 3 versões únicas do seu conteúdo',
-      estimatedTime: 20,
+      label: 'Gerando 3 variações em paralelo',
+      description: 'Processamento simultâneo com IA avançada',
+      estimatedTime: 12,
       completed: false,
       active: false
     },
     {
       id: 'optimizing',
-      label: 'Otimizando resultados',
-      description: 'Ajustando tom, contagem de palavras e estrutura',
-      estimatedTime: 5,
+      label: 'Finalizando resultados',
+      description: 'Ajustando formato e preparando visualização',
+      estimatedTime: 3,
       completed: false,
       active: false
     }
@@ -219,9 +219,9 @@ export function GenerationProgress({ isGenerating, onComplete }: GenerationProgr
             <div className="flex items-start space-x-2">
               <Sparkles className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Dica Bônus:</p>
-                <p>Enquanto seu conteúdo está sendo gerado, que tal definir o próximo tema? 
-                   A IA está aplicando neurociência comportamental para maximizar o engajamento!</p>
+                <p className="font-medium mb-1">Processamento Otimizado:</p>
+                <p>Suas 3 variações estão sendo geradas simultaneamente com tecnologia paralela. 
+                   Cada variação usa um código magnético diferente para maximizar o impacto neurológico!</p>
               </div>
             </div>
           </div>

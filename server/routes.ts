@@ -367,19 +367,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Select best 3 codes for the objective
       const selectedCodes = selectBestCode(objective);
       
-      // Generate content for each code
+      // Generate content for all codes in parallel (3x faster)
       const variations: ContentVariation[] = [];
       let totalTokens = 0;
 
-      for (const code of selectedCodes) {
-        try {
-          const variation = await generateContentWithClaude(topic, code, objective);
-          variations.push(variation);
-          totalTokens += 300; // Estimate tokens used
-        } catch (error) {
-          console.error(`Error generating content for code ${code}:`, error);
-          // Continue with other codes even if one fails
-        }
+      try {
+        const generationPromises = selectedCodes.map(code => 
+          generateContentWithClaude(topic, code, objective)
+            .catch(error => {
+              console.error(`Error generating content for code ${code}:`, error);
+              return null; // Return null for failed generations
+            })
+        );
+
+        const results = await Promise.all(generationPromises);
+        
+        // Filter out failed generations and add successful ones
+        results.forEach(result => {
+          if (result) {
+            variations.push(result);
+            totalTokens += 300; // Estimate tokens used per variation
+          }
+        });
+      } catch (error) {
+        console.error('Error in parallel generation:', error);
       }
 
       if (variations.length === 0) {
