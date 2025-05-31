@@ -714,7 +714,22 @@ Seja preciso na extração e mantenha consistência com os dados do documento.`
       if (firstContent.type !== 'text') {
         throw new Error('Resposta inesperada da API');
       }
-      const extractedData = JSON.parse(firstContent.text);
+      
+      let extractedData;
+      try {
+        // Try to parse as JSON first
+        extractedData = JSON.parse(firstContent.text);
+      } catch (jsonError) {
+        // If JSON parsing fails, try to extract JSON from markdown code blocks
+        const jsonMatch = firstContent.text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+        if (jsonMatch) {
+          extractedData = JSON.parse(jsonMatch[1]);
+        } else {
+          // If no JSON found, create a fallback structure
+          console.error('Could not extract valid JSON from AI response:', firstContent.text);
+          throw new Error('Não foi possível extrair dados estruturados do arquivo MPMP. Verifique se o arquivo contém as informações necessárias.');
+        }
+      }
       
       // Clean up uploaded file
       await fs.unlink(filePath);
