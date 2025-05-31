@@ -1385,7 +1385,210 @@ Seja preciso na extração e mantenha consistência com os dados do documento.`
     }
   });
 
-  // ========== FIM DAS ROTAS CLOUDINARY (PRIMEIRA ETAPA) ==========
+  // 3. Obter detalhes específicos de um arquivo
+  app.get('/api/mpmp/arquivo-cloud/:cloudId', async (req, res) => {
+    try {
+      const { cloudId } = req.params;
+      
+      // Validação básica
+      if (!cloudId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID do arquivo é obrigatório'
+        });
+      }
+
+      // Buscar detalhes do arquivo no Cloudinary
+      const fileDetails = await UploadService.getFileDetails(cloudId);
+      
+      if (!fileDetails) {
+        return res.status(404).json({
+          success: false,
+          message: 'Arquivo não encontrado no Cloudinary'
+        });
+      }
+
+      // Formatar resposta com informações detalhadas
+      const detailedFile = {
+        id: fileDetails.id,
+        name: fileDetails.id.split('/').pop() || 'arquivo',
+        url: fileDetails.url,
+        size: fileDetails.size,
+        format: fileDetails.format,
+        uploadedAt: fileDetails.createdAt,
+        metadata: fileDetails.metadata || {},
+        optimizedUrls: {
+          thumbnail: UploadService.getOptimizedUrl(cloudId, { 
+            width: 150, 
+            height: 150, 
+            crop: 'fill',
+            quality: 'auto'
+          }),
+          medium: UploadService.getOptimizedUrl(cloudId, { 
+            width: 500, 
+            quality: 'auto'
+          }),
+          large: UploadService.getOptimizedUrl(cloudId, { 
+            width: 1200, 
+            quality: 'auto'
+          })
+        }
+      };
+
+      res.json({
+        success: true,
+        message: 'Detalhes do arquivo recuperados com sucesso',
+        file: detailedFile
+      });
+
+    } catch (error) {
+      console.error('Erro ao buscar detalhes do arquivo:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar detalhes do arquivo',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // 4. Deletar arquivo do Cloudinary
+  app.delete('/api/mpmp/arquivo-cloud/:projectId/:cloudId', async (req, res) => {
+    try {
+      const { projectId, cloudId } = req.params;
+      const userId = req.query.userId as string || 'demo-user';
+      
+      // Validações básicas
+      if (!projectId || !cloudId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID do projeto e ID do arquivo são obrigatórios'
+        });
+      }
+
+      // Primeiro, verificar se o arquivo existe e pertence ao usuário
+      const fileDetails = await UploadService.getFileDetails(cloudId);
+      
+      if (!fileDetails) {
+        return res.status(404).json({
+          success: false,
+          message: 'Arquivo não encontrado'
+        });
+      }
+
+      // Verificar se o arquivo pertence ao usuário correto
+      const fileUserId = fileDetails.metadata?.user_id;
+      if (fileUserId && fileUserId !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Você não tem permissão para deletar este arquivo'
+        });
+      }
+
+      // Deletar arquivo do Cloudinary
+      const deleteResult = await UploadService.deleteFile(cloudId);
+      
+      if (!deleteResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: 'Falha ao deletar arquivo do Cloudinary'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Arquivo deletado com sucesso',
+        deletedFile: {
+          id: cloudId,
+          projectId: parseInt(projectId),
+          userId
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao deletar arquivo:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno ao deletar arquivo',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // 5. Gerar URLs otimizadas para diferentes dispositivos
+  app.post('/api/mpmp/optimized-url', async (req, res) => {
+    try {
+      const { cloudId, transformations } = req.body;
+      
+      // Validação básica
+      if (!cloudId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID do arquivo é obrigatório'
+        });
+      }
+
+      // Verificar se o arquivo existe
+      const fileDetails = await UploadService.getFileDetails(cloudId);
+      if (!fileDetails) {
+        return res.status(404).json({
+          success: false,
+          message: 'Arquivo não encontrado'
+        });
+      }
+
+      // Transformações predefinidas para diferentes casos de uso
+      const predefinedTransformations = {
+        thumbnail: { width: 150, height: 150, crop: 'fill', quality: 'auto' },
+        small: { width: 300, quality: 'auto' },
+        medium: { width: 600, quality: 'auto' },
+        large: { width: 1200, quality: 'auto' },
+        mobile: { width: 400, quality: 'auto', format: 'webp' },
+        desktop: { width: 800, quality: 'auto', format: 'webp' },
+        print: { width: 2400, quality: 100 },
+        social: { width: 1200, height: 630, crop: 'fill', quality: 'auto' }
+      };
+
+      // Se não há transformações específicas, usar as predefinidas
+      const finalTransformations = transformations || predefinedTransformations;
+
+      // Gerar URLs otimizadas
+      const optimizedUrls: Record<string, string> = {};
+      
+      if (typeof finalTransformations === 'object') {
+        Object.entries(finalTransformations).forEach(([key, transform]) => {
+          optimizedUrls[key] = UploadService.getOptimizedUrl(cloudId, transform as any);
+        });
+      }
+
+      // URL original para referência
+      const originalUrl = fileDetails.url;
+
+      res.json({
+        success: true,
+        message: 'URLs otimizadas geradas com sucesso',
+        urls: {
+          original: originalUrl,
+          optimized: optimizedUrls
+        },
+        fileInfo: {
+          id: cloudId,
+          name: fileDetails.id.split('/').pop() || 'arquivo',
+          format: fileDetails.format,
+          size: fileDetails.size
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao gerar URLs otimizadas:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao gerar URLs otimizadas',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // ========== FIM DAS ROTAS CLOUDINARY ==========
 
   const httpServer = createServer(app);
   return httpServer;
