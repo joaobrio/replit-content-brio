@@ -4,6 +4,9 @@ interface ExtractionResult {
   text: string;
   pageCount?: number;
   metadata?: any;
+  wordCount?: number;
+  characterCount?: number;
+  processingTime?: number;
 }
 
 // Type definitions for pdf-parse
@@ -28,62 +31,131 @@ declare module 'pdf-parse' {
 export class TextExtractorService {
   /**
    * Extrai texto de um arquivo baseado em sua URL ou buffer
-   * Suporta PDF, TXT, DOC/DOCX
+   * Suporta PDF, TXT, DOC/DOCX com retry automático e timeout
    */
   static async extractTextFromFile(
     fileUrlOrBuffer: string | Buffer, 
+    fileType: string,
+    options: { timeout?: number; retries?: number } = {}
+  ): Promise<ExtractionResult> {
+    const startTime = Date.now();
+    const { timeout = 30000, retries = 2 } = options;
+    
+    let lastError: Error | null = null;
+    
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const result = await Promise.race([
+          this._extractWithTimeout(fileUrlOrBuffer, fileType),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout na extração de texto')), timeout)
+          )
+        ]);
+        
+        // Adicionar métricas de processamento
+        const processingTime = Date.now() - startTime;
+        return {
+          ...result,
+          processingTime,
+          wordCount: this.countWords(result.text),
+          characterCount: result.text.length
+        };
+        
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Erro desconhecido');
+        console.warn(`Tentativa ${attempt + 1}/${retries + 1} falhou:`, lastError.message);
+        
+        if (attempt < retries) {
+          // Delay exponencial entre tentativas
+          await this.delay(Math.pow(2, attempt) * 1000);
+        }
+      }
+    }
+    
+    throw new Error(`Falha na extração após ${retries + 1} tentativas: ${lastError?.message}`);
+  }
+
+  /**
+   * Método interno para extração com validação aprimorada
+   */
+  private static async _extractWithTimeout(
+    fileUrlOrBuffer: string | Buffer, 
     fileType: string
   ): Promise<ExtractionResult> {
-    try {
-      let buffer: Buffer;
+    let buffer: Buffer;
+    
+    // Download com timeout se for URL
+    if (typeof fileUrlOrBuffer === 'string') {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      // Se for URL, fazer download primeiro
-      if (typeof fileUrlOrBuffer === 'string') {
-        const response = await fetch(fileUrlOrBuffer);
+      try {
+        const response = await fetch(fileUrlOrBuffer, { 
+          signal: controller.signal,
+          headers: { 'User-Agent': 'BRIO.IA TextExtractor/1.0' }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         buffer = Buffer.from(await response.arrayBuffer());
-      } else {
-        buffer = fileUrlOrBuffer;
+      } finally {
+        clearTimeout(timeoutId);
       }
+    } else {
+      buffer = fileUrlOrBuffer;
+    }
 
-      // Processar baseado no tipo de arquivo
-      switch (fileType.toLowerCase()) {
-        case 'pdf':
-        case 'application/pdf':
-          return await this.extractFromPDF(buffer);
-          
-        case 'txt':
-        case 'text/plain':
-          return {
-            text: buffer.toString('utf-8'),
-            pageCount: 1
-          };
-          
-        case 'doc':
-        case 'docx':
-        case 'application/msword':
-        case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-          // Para DOC/DOCX, você pode usar mammoth.js futuramente
-          // Por ora, vamos tratar como texto simples
-          return {
-            text: buffer.toString('utf-8'),
-            metadata: { warning: 'Extração básica de DOC/DOCX - considere usar mammoth.js para melhor suporte' }
-          };
-          
-        default:
-          throw new Error(`Tipo de arquivo não suportado: ${fileType}`);
-      }
-    } catch (error) {
-      console.error('Erro ao extrair texto:', error);
-      throw new Error(`Falha na extração de texto: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    // Validação de buffer
+    if (!this.validateFileBuffer(buffer, fileType)) {
+      throw new Error(`Buffer inválido ou corrompido para tipo ${fileType}`);
+    }
+
+    // Processar baseado no tipo com fallbacks
+    const normalizedType = fileType.toLowerCase();
+    
+    switch (normalizedType) {
+      case 'pdf':
+      case 'application/pdf':
+        return await this.extractFromPDF(buffer);
+        
+      case 'txt':
+      case 'text/plain':
+        return this.extractFromText(buffer);
+        
+      case 'doc':
+      case 'docx':
+      case 'application/msword':
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return this.extractFromDocument(buffer, normalizedType);
+        
+      default:
+        // Fallback: tentar como texto
+        console.warn(`Tipo não reconhecido ${fileType}, tentando como texto`);
+        return this.extractFromText(buffer);
     }
   }
 
   /**
-   * Extração específica para PDF usando pdf-parse
+   * Extração robusta de PDF com fallbacks
    */
   private static async extractFromPDF(buffer: Buffer): Promise<ExtractionResult> {
     try {
-      const data = await pdfParse(buffer);
+      // Validar magic number do PDF
+      if (!buffer.slice(0, 4).equals(Buffer.from([0x25, 0x50, 0x44, 0x46]))) {
+        throw new Error('Arquivo não é um PDF válido');
+      }
+
+      const data = await pdfParse(buffer, {
+        // Opções para PDFs problemáticos
+        max: 0, // Sem limite de páginas
+        version: 'v1.10.100' // Versão específica para compatibilidade
+      });
+      
+      if (!data.text || data.text.trim().length === 0) {
+        throw new Error('PDF não contém texto extraível (pode ser imagem)');
+      }
       
       return {
         text: data.text,
@@ -91,34 +163,112 @@ export class TextExtractorService {
         metadata: {
           info: data.info,
           metadata: data.metadata,
-          version: data.version
+          version: data.version,
+          extractionMethod: 'pdf-parse'
         }
       };
     } catch (error) {
       console.error('Erro ao processar PDF:', error);
-      throw new Error('Falha ao extrair texto do PDF');
+      throw new Error(`Falha ao extrair texto do PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
 
   /**
-   * Limpa e normaliza o texto extraído
+   * Extração de texto simples com encoding automático
+   */
+  private static extractFromText(buffer: Buffer): ExtractionResult {
+    // Detectar encoding (básico)
+    let text: string;
+    
+    try {
+      // Tentar UTF-8 primeiro
+      text = buffer.toString('utf-8');
+      
+      // Verificar se há caracteres de controle inválidos
+      if (text.includes('\uFFFD')) {
+        // Fallback para latin1
+        text = buffer.toString('latin1');
+      }
+    } catch (error) {
+      // Último recurso: ASCII
+      text = buffer.toString('ascii');
+    }
+
+    return {
+      text,
+      pageCount: 1,
+      metadata: {
+        extractionMethod: 'text-plain',
+        encoding: 'auto-detected'
+      }
+    };
+  }
+
+  /**
+   * Extração básica para DOC/DOCX (placeholder para mammoth.js)
+   */
+  private static extractFromDocument(buffer: Buffer, fileType: string): ExtractionResult {
+    // TODO: Integrar mammoth.js para melhor suporte a DOC/DOCX
+    // Por ora, tentativa básica de extração
+    
+    let text: string;
+    
+    if (fileType.includes('docx')) {
+      // DOCX é um ZIP, pode tentar extrair XML
+      try {
+        text = buffer.toString('utf-8');
+        // Remover tags XML básicas
+        text = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      } catch {
+        text = 'Erro: DOCX requer processamento específico. Use PDF ou TXT.';
+      }
+    } else {
+      // DOC é binário, extração limitada
+      text = 'Erro: DOC requer processamento específico. Use PDF ou TXT.';
+    }
+
+    return {
+      text,
+      metadata: { 
+        warning: 'Extração básica de DOC/DOCX - recomenda-se converter para PDF',
+        extractionMethod: 'basic-binary'
+      }
+    };
+  }
+
+  /**
+   * Normalização avançada de texto
    */
   static normalizeText(text: string): string {
     return text
-      .replace(/\s+/g, ' ') // Múltiplos espaços para um
-      .replace(/\n{3,}/g, '\n\n') // Máximo 2 quebras de linha
+      // Normalizar espaços em branco
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\t/g, ' ')
+      .replace(/\s+/g, ' ')
+      // Remover quebras excessivas
+      .replace(/\n{3,}/g, '\n\n')
+      // Remover caracteres de controle
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      // Normalizar Unicode
+      .normalize('NFC')
       .trim();
   }
 
   /**
-   * Valida se o buffer contém um arquivo válido
+   * Validação aprimorada de buffer
    */
   static validateFileBuffer(buffer: Buffer, fileType: string): boolean {
     if (!buffer || buffer.length === 0) {
       return false;
     }
 
-    // Validação básica por magic numbers
+    // Tamanho mínimo razoável
+    if (buffer.length < 10) {
+      return false;
+    }
+
+    // Magic numbers para validação
     const magicNumbers = {
       pdf: [0x25, 0x50, 0x44, 0x46], // %PDF
       doc: [0xD0, 0xCF, 0x11, 0xE0], // DOC
@@ -129,19 +279,134 @@ export class TextExtractorService {
       return buffer.slice(0, 4).equals(Buffer.from(magicNumbers.pdf));
     }
 
-    return true; // Para TXT e outros, confiar no MIME type
+    if (fileType.includes('doc') && !fileType.includes('docx')) {
+      return buffer.slice(0, 4).equals(Buffer.from(magicNumbers.doc));
+    }
+
+    if (fileType.includes('docx')) {
+      return buffer.slice(0, 4).equals(Buffer.from(magicNumbers.docx));
+    }
+
+    // Para texto, verificar se é válido UTF-8 ou ASCII
+    if (fileType.includes('text')) {
+      try {
+        const text = buffer.toString('utf-8');
+        return text.length > 0 && !text.includes('\uFFFD');
+      } catch {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
-   * Extrai preview do texto (primeiros N caracteres)
+   * Contador de palavras inteligente
+   */
+  static countWords(text: string): number {
+    if (!text || text.trim().length === 0) return 0;
+    
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter(word => word.length > 0)
+      .length;
+  }
+
+  /**
+   * Preview inteligente com resumo
    */
   static getTextPreview(text: string, maxLength: number = 500): string {
+    if (!text || text.trim().length === 0) {
+      return 'Texto vazio';
+    }
+    
     if (text.length <= maxLength) {
       return text;
     }
     
-    // Cortar no último espaço antes do limite
-    const cutIndex = text.lastIndexOf(' ', maxLength);
-    return text.substring(0, cutIndex > 0 ? cutIndex : maxLength) + '...';
+    // Tentar cortar em frase completa
+    const sentences = text.split(/[.!?]+/);
+    let preview = '';
+    
+    for (const sentence of sentences) {
+      const testPreview = preview + sentence + '.';
+      if (testPreview.length > maxLength) {
+        break;
+      }
+      preview = testPreview;
+    }
+    
+    // Se não conseguiu uma frase, cortar por palavra
+    if (preview.length === 0) {
+      const cutIndex = text.lastIndexOf(' ', maxLength);
+      preview = text.substring(0, cutIndex > 0 ? cutIndex : maxLength);
+    }
+    
+    return preview.trim() + (preview.length < text.length ? '...' : '');
+  }
+
+  /**
+   * Análise de qualidade do texto extraído
+   */
+  static analyzeTextQuality(text: string): {
+    score: number;
+    issues: string[];
+    suggestions: string[];
+  } {
+    const issues: string[] = [];
+    const suggestions: string[] = [];
+    let score = 100;
+
+    // Verificar tamanho
+    if (text.length < 50) {
+      issues.push('Texto muito curto');
+      suggestions.push('Verificar se o arquivo contém o conteúdo esperado');
+      score -= 30;
+    }
+
+    // Verificar caracteres especiais excessivos
+    const specialChars = (text.match(/[^\w\s\.\,\!\?\-]/g) || []).length;
+    const specialRatio = specialChars / text.length;
+    
+    if (specialRatio > 0.1) {
+      issues.push('Muitos caracteres especiais (possível OCR de baixa qualidade)');
+      suggestions.push('Considerar melhorar a qualidade do PDF original');
+      score -= 20;
+    }
+
+    // Verificar repetições excessivas
+    const words = text.split(/\s+/);
+    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+    const repetitionRatio = uniqueWords.size / words.length;
+    
+    if (repetitionRatio < 0.3) {
+      issues.push('Texto com muitas repetições');
+      suggestions.push('Verificar se a extração foi correta');
+      score -= 15;
+    }
+
+    // Verificar estrutura de frases
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const avgSentenceLength = text.length / sentences.length;
+    
+    if (avgSentenceLength > 500) {
+      issues.push('Frases muito longas (possível problema de formatação)');
+      suggestions.push('Revisar a formatação do documento original');
+      score -= 10;
+    }
+
+    return {
+      score: Math.max(0, score),
+      issues,
+      suggestions
+    };
+  }
+
+  /**
+   * Utility: delay para retry
+   */
+  private static delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
