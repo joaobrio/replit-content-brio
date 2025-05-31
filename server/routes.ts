@@ -1265,6 +1265,128 @@ Seja preciso na extração e mantenha consistência com os dados do documento.`
     }
   });
 
+  // ========== ROTAS MPMP COM CLOUDINARY ==========
+
+  // 1. Upload de arquivo para Cloudinary
+  app.post('/api/mpmp/upload-cloud', upload.single('arquivo'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Nenhum arquivo foi enviado' 
+        });
+      }
+
+      // Validações básicas
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        // Limpar arquivo temporário
+        await fs.unlink(req.file.path);
+        return res.status(400).json({
+          success: false,
+          message: 'Tipo de arquivo não suportado. Use PDF, DOC, DOCX ou TXT'
+        });
+      }
+
+      // Ler arquivo para upload
+      const fileBuffer = await fs.readFile(req.file.path);
+      
+      // Extrair informações do usuário (simulado por enquanto)
+      const userId = req.body.userId || 'demo-user';
+      const projectName = req.body.projectName || req.file.originalname.split('.')[0];
+
+      // Upload para Cloudinary
+      const uploadResult = await UploadService.uploadFile(fileBuffer, {
+        userId,
+        fileName: req.file.originalname,
+        projectName,
+        tags: ['mpmp', 'document', userId]
+      });
+
+      // Limpar arquivo temporário
+      await fs.unlink(req.file.path);
+
+      res.json({
+        success: true,
+        message: 'Arquivo enviado com sucesso para a nuvem',
+        file: {
+          id: uploadResult.fileId,
+          name: req.file.originalname,
+          url: uploadResult.url,
+          size: uploadResult.size,
+          format: uploadResult.format,
+          uploadedAt: uploadResult.createdAt,
+          userId,
+          projectName
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro no upload para Cloudinary:', error);
+      
+      // Limpar arquivo temporário em caso de erro
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (cleanupError) {
+          console.error('Erro ao limpar arquivo temporário:', cleanupError);
+        }
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Erro interno no upload',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // 2. Listar arquivos do usuário no Cloudinary
+  app.get('/api/mpmp/arquivos-cloud', async (req, res) => {
+    try {
+      const userId = req.query.userId as string || 'demo-user';
+      
+      // Validação básica
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ID do usuário é obrigatório'
+        });
+      }
+
+      // Buscar arquivos do usuário
+      const userFiles = await UploadService.listUserFiles(userId);
+      
+      // Formatear resposta
+      const formattedFiles = userFiles.map(file => ({
+        id: file.id,
+        name: file.id.split('/').pop() || 'arquivo',
+        url: file.url,
+        size: file.size,
+        format: file.format,
+        uploadedAt: file.createdAt,
+        metadata: file.metadata
+      }));
+
+      res.json({
+        success: true,
+        message: `${formattedFiles.length} arquivo(s) encontrado(s)`,
+        files: formattedFiles,
+        totalFiles: formattedFiles.length
+      });
+
+    } catch (error) {
+      console.error('Erro ao listar arquivos:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar arquivos',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    }
+  });
+
+  // ========== FIM DAS ROTAS CLOUDINARY (PRIMEIRA ETAPA) ==========
+
   const httpServer = createServer(app);
   return httpServer;
 }
