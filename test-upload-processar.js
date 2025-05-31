@@ -1,8 +1,6 @@
 // Script de teste para a rota unificada upload-e-processar
-// Usar: node test-api-upload-processar.cjs
-
-const fs = require('fs');
-const FormData = require('form-data');
+import fs from 'fs';
+import FormData from 'form-data';
 
 async function testUploadEProcessar() {
   console.log('🚀 Testando upload e processamento unificado...\n');
@@ -126,10 +124,10 @@ Cardiologista há 20 anos | Especialista em Prevenção Cardiovascular | Criador
   } catch (error) {
     console.error('❌ Erro:', error.message);
     console.error('\n💡 Possíveis causas:');
-    console.error('1. Servidor não está rodando (npm run dev)');
-    console.error('2. Dependências não instaladas (npm install)');
-    console.error('3. Erro na configuração da API Anthropic');
-    console.error('4. Erro na configuração do Cloudinary');
+    console.error('1. Servidor não está rodando');
+    console.error('2. Rota não implementada ainda');
+    console.error('3. Falta instalar pdf-parse: npm install pdf-parse');
+    console.error('4. Erro na configuração da API Anthropic');
     
     // Limpar arquivo se existir
     if (fs.existsSync('teste-mpmp.txt')) {
