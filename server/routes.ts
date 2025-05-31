@@ -6,6 +6,8 @@ import { insertContentGenerationSchema, type GenerationRequest, type GenerationR
 import { z } from "zod";
 import multer from 'multer';
 import fs from 'fs/promises';
+// Import do UploadService para integração Cloudinary
+import { UploadService } from '../services/uploadService';
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 import Anthropic from '@anthropic-ai/sdk';
