@@ -220,36 +220,55 @@ function getToneForObjective(objective: string): string {
   return tones[objective as keyof typeof tones] || 'Profissional';
 }
 
-// Editorial Calendar Generator Functions
+// Editorial Calendar Generator Functions - Optimized for 12 posts
 async function generateEditorialCalendar(project: any, month: number, year: number) {
-  const daysInMonth = new Date(year, month, 0).getDate();
   const suggestions = [];
 
-  // Estratégia de distribuição dos 4Cs
-  const weeklyPattern = {
-    1: 'convencer', // Segunda - Educação e autoridade
-    2: 'convencer', // Terça - Educação e autoridade  
-    3: 'conectar',  // Quarta - Conexão e histórias
-    4: 'conectar',  // Quinta - Conexão e histórias
-    5: 'converter', // Sexta - Transformação e resultados
-    6: 'captar',    // Sábado - Curiosidade e engajamento
-    0: 'captar'     // Domingo - Curiosidade e engajamento
-  };
-
-  const codes = Object.keys(MAGNETIC_CODES);
-  
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month - 1, day);
-    const dayOfWeek = date.getDay();
-    const objective = weeklyPattern[dayOfWeek as keyof typeof weeklyPattern];
+  // Estratégia balanceada para 12 conteúdos (3 de cada objetivo)
+  const calendarStructure = [
+    // Semana 1
+    { day: 1, objective: 'captar' },
+    { day: 3, objective: 'conectar' },
+    { day: 5, objective: 'convencer' },
     
-    // Seleciona código baseado no objetivo
+    // Semana 2  
+    { day: 8, objective: 'converter' },
+    { day: 10, objective: 'captar' },
+    { day: 12, objective: 'conectar' },
+    
+    // Semana 3
+    { day: 15, objective: 'convencer' },
+    { day: 17, objective: 'converter' },
+    { day: 19, objective: 'captar' },
+    
+    // Semana 4
+    { day: 22, objective: 'conectar' },
+    { day: 24, objective: 'convencer' },
+    { day: 26, objective: 'converter' }
+  ];
+
+  // Gerar todas as sugestões em paralelo para máxima velocidade
+  const generationPromises = calendarStructure.map(async ({ day, objective }) => {
+    const date = new Date(year, month - 1, day);
     const availableCodes = selectBestCode(objective);
     const code = availableCodes[day % availableCodes.length];
     
-    const suggestion = await generateSingleSuggestion(project, date.toISOString(), objective, code);
-    suggestions.push(suggestion);
-  }
+    try {
+      return await generateSingleSuggestion(project, date.toISOString(), objective, code);
+    } catch (error) {
+      console.error(`Error generating suggestion for day ${day}:`, error);
+      return null;
+    }
+  });
+
+  const results = await Promise.all(generationPromises);
+  
+  // Filtrar resultados válidos
+  results.forEach(result => {
+    if (result) {
+      suggestions.push(result);
+    }
+  });
 
   return suggestions;
 }

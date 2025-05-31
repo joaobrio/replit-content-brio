@@ -73,7 +73,7 @@ export function EditorialCalendar({ selectedProject }: EditorialCalendarProps) {
 
       toast({
         title: "Calendário gerado!",
-        description: `${calendarData.length} sugestões criadas para ${selectedProject.name}`,
+        description: `12 conteúdos estratégicos criados para ${selectedProject.name}`,
       });
     } catch (error) {
       toast({
@@ -272,7 +272,7 @@ export function EditorialCalendar({ selectedProject }: EditorialCalendarProps) {
               ) : (
                 <Calendar className="w-4 h-4" />
               )}
-              {isGenerating ? 'Gerando...' : 'Gerar Calendário'}
+              {isGenerating ? 'Gerando...' : 'Gerar 12 Conteúdos'}
             </Button>
 
             {suggestions.length > 0 && (
