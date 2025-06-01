@@ -27,7 +27,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    // Configurações de produção para otimização
+    // Configurações de produção simplificadas
     ...(process.env.NODE_ENV === "production" && {
       sourcemap: false,
       minify: "terser",
@@ -38,19 +38,11 @@ export default defineConfig({
         },
       },
       rollupOptions: {
-        external: [
-          // Excluir arquivos de teste do bundle
-          /test\//,
-          /\.test\./,
-          /\.spec\./,
-          /__tests__/,
-          /test-.*\.(js|ts|jsx|tsx)$/,
-        ],
+        // Removido temporariamente o external para evitar conflitos
         output: {
           // Otimização de chunks
           manualChunks: {
             vendor: ['react', 'react-dom'],
-            radix: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
           },
         },
       },
