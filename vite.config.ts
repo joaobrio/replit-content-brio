@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['d3-array'],
+    include: ['d3-array', 'd3-scale', 'd3-time', 'recharts'],
     exclude: ['@replit/vite-plugin-runtime-error-modal', '@replit/vite-plugin-cartographer'],
   },
   root: path.resolve(import.meta.dirname, "client"),
@@ -41,7 +41,8 @@ export default defineConfig({
             '@radix-ui/react-toast',
           ],
           'icons': ['lucide-react'],
-          'd3': ['d3-array'],
+          'd3': ['d3-array', 'd3-scale', 'd3-time'],
+          'charts': ['recharts'],
         },
       },
     },
