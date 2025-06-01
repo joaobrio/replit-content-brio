@@ -9,8 +9,6 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
-      // Resolvendo problema com d3-array
-      "d3-array": path.resolve(import.meta.dirname, "node_modules/d3-array/dist/d3-array.js"),
     },
   },
   optimizeDeps: {
