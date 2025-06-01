@@ -15,7 +15,7 @@ pattern = "__tests__/**"
 
 # Define o comando de build para produção
 [deployment]
-build = ["sh", "-c", "node build-fix.js"]
+build = ["sh", "-c", "npm run build:alt"]
 run = ["sh", "-c", "NODE_ENV=production npm start"]
 
 # Variáveis de ambiente para produção

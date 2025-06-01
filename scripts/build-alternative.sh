@@ -10,9 +10,9 @@ export SKIP_TEST_FILES=true
 # Limpar antes
 npm run clean
 
-# Build do servidor primeiro
+# Build do servidor primeiro com cloudinary incluído
 echo "📦 Compilando servidor..."
-npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+npx esbuild server/index.ts --platform=node --bundle --format=esm --outdir=dist --external:@neondatabase/serverless --external:drizzle-orm --external:express --external:express-session --external:passport --external:ws --external:@anthropic-ai/sdk --external:openai --minify
 
 # Build do frontend (pode falhar, mas tentamos)
 echo "🎨 Compilando frontend..."
