@@ -7,12 +7,17 @@ echo "🚀 Build alternativo iniciando..."
 export NODE_ENV=production
 export SKIP_TEST_FILES=true
 
+# Garantir que cloudinary está instalado
+echo "📦 Verificando dependências..."
+npm ls cloudinary || npm install cloudinary
+
 # Limpar antes
 npm run clean
 
-# Build do servidor primeiro com cloudinary incluído
+# Build do servidor primeiro
 echo "📦 Compilando servidor..."
-npx esbuild server/index.ts --platform=node --bundle --format=esm --outdir=dist --external:@neondatabase/serverless --external:drizzle-orm --external:express --external:express-session --external:passport --external:ws --external:@anthropic-ai/sdk --external:openai --minify
+# Adicionar pdf-parse aos externos pois ele usa require dinâmico
+npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --minify --external:pdf-parse
 
 # Build do frontend (pode falhar, mas tentamos)
 echo "🎨 Compilando frontend..."
