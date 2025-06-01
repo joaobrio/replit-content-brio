@@ -1,36 +1,40 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
-run = "npm run dev"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+# Arquivo de configuração para build de produção no Replit
 
-[nix]
-channel = "stable-24_05"
+# Exclui arquivos de teste do build
+[[build.exclude]]
+pattern = "test/**"
 
+[[build.exclude]]
+pattern = "**/*.test.*"
+
+[[build.exclude]]
+pattern = "**/*.spec.*"
+
+[[build.exclude]]
+pattern = "__tests__/**"
+
+# Define o comando de build para produção
 [deployment]
-deploymentTarget = "autoscale"
-build = ["sh", "-c", "npm ci && npm run build"]
-run = ["sh", "-c", "npm start"]
+build = ["sh", "-c", "NODE_ENV=production npm run build"]
+run = ["sh", "-c", "NODE_ENV=production npm start"]
 
-[[ports]]
-localPort = 5000
-externalPort = 80
+# Variáveis de ambiente para produção
+[env]
+NODE_ENV = "production"
+SKIP_TEST_FILES = "true"
 
-[workflows]
-runButton = "Project"
+# Headers de segurança
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-Content-Type-Options"
+value = "nosniff"
 
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-Frame-Options"
+value = "DENY"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
+[[deployment.responseHeaders]]
+path = "/*"
+name = "Strict-Transport-Security"
+value = "max-age=31536000; includeSubDomains"
