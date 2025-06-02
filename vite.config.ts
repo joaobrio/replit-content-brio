@@ -13,6 +13,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ['@replit/vite-plugin-runtime-error-modal', '@replit/vite-plugin-cartographer'],
+    include: ['lucide-react']
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
@@ -27,10 +28,6 @@ export default defineConfig({
       },
     },
     rollupOptions: {
-      external: [
-        // Externalizando módulos problemáticos
-        /lucide-react\/dist\/esm\/icons\/.*/,
-      ],
       output: {
         manualChunks: {
           'vendor': ['react', 'react-dom'],
