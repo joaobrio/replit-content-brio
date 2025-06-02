@@ -1,5 +1,5 @@
-// API super simples sem dependências externas
-module.exports = (req, res) => {
+// API usando ES modules (export default)
+export default function handler(req, res) {
   // Configurar CORS manualmente
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -18,7 +18,7 @@ module.exports = (req, res) => {
     res.status(200).json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      message: 'API funcionando sem Express!' 
+      message: 'API funcionando com ES modules!' 
     });
   } else if (url === '/api' || url === '/api/') {
     res.status(200).json({ 
@@ -33,4 +33,4 @@ module.exports = (req, res) => {
       method: method
     });
   }
-};
+}
