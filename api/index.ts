@@ -1,6 +1,5 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express from "express";
 import cors from "cors";
-import { registerRoutes } from "../server/routes";
 
 const app = express();
 
@@ -15,28 +14,17 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
-// Logging simplificado para Vercel
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
-
-// Registrar todas as rotas
+// Import and register routes
 (async () => {
-  try {
-    await registerRoutes(app);
-  } catch (error) {
-    console.error("Error registering routes:", error);
+  // Dynamic import based on environment
+  if (process.env.VERCEL) {
+    // For Vercel, use modified auth
+    global.isVercel = true;
   }
+  
+  const { registerRoutes } = await import("../server/routes");
+  await registerRoutes(app);
 })();
-
-// Error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  console.error("API Error:", err);
-  res.status(status).json({ message });
-});
 
 // Export para Vercel
 export default app;
