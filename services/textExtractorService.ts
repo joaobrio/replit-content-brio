@@ -1,5 +1,3 @@
-import pdfParse from 'pdf-parse';
-
 interface ExtractionResult {
   text: string;
   pageCount?: number;
@@ -9,29 +7,11 @@ interface ExtractionResult {
   processingTime?: number;
 }
 
-// Type definitions for pdf-parse
-declare module 'pdf-parse' {
-  interface PDFInfo {
-    [key: string]: any;
-  }
-  
-  interface PDFData {
-    numpages: number;
-    numrender: number;
-    info: PDFInfo;
-    metadata: any;
-    text: string;
-    version: string;
-  }
-  
-  function pdfParse(buffer: Buffer): Promise<PDFData>;
-  export = pdfParse;
-}
-
 export class TextExtractorService {
   /**
    * Extrai texto de um arquivo baseado em sua URL ou buffer
-   * Suporta PDF, TXT, DOC/DOCX com retry automático e timeout
+   * Suporta TXT, DOC/DOCX com retry automático e timeout
+   * PDF temporariamente desabilitado
    */
   static async extractTextFromFile(
     fileUrlOrBuffer: string | Buffer, 
@@ -118,7 +98,7 @@ export class TextExtractorService {
     switch (normalizedType) {
       case 'pdf':
       case 'application/pdf':
-        return await this.extractFromPDF(buffer);
+        throw new Error('Processamento de PDF temporariamente desabilitado. Use formatos como DOCX, TXT ou imagens.');
         
       case 'txt':
       case 'text/plain':
@@ -134,42 +114,6 @@ export class TextExtractorService {
         // Fallback: tentar como texto
         console.warn(`Tipo não reconhecido ${fileType}, tentando como texto`);
         return this.extractFromText(buffer);
-    }
-  }
-
-  /**
-   * Extração robusta de PDF com fallbacks
-   */
-  private static async extractFromPDF(buffer: Buffer): Promise<ExtractionResult> {
-    try {
-      // Validar magic number do PDF
-      if (!buffer.slice(0, 4).equals(Buffer.from([0x25, 0x50, 0x44, 0x46]))) {
-        throw new Error('Arquivo não é um PDF válido');
-      }
-
-      const data = await pdfParse(buffer, {
-        // Opções para PDFs problemáticos
-        max: 0, // Sem limite de páginas
-        version: 'v1.10.100' // Versão específica para compatibilidade
-      });
-      
-      if (!data.text || data.text.trim().length === 0) {
-        throw new Error('PDF não contém texto extraível (pode ser imagem)');
-      }
-      
-      return {
-        text: data.text,
-        pageCount: data.numpages,
-        metadata: {
-          info: data.info,
-          metadata: data.metadata,
-          version: data.version,
-          extractionMethod: 'pdf-parse'
-        }
-      };
-    } catch (error) {
-      console.error('Erro ao processar PDF:', error);
-      throw new Error(`Falha ao extrair texto do PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     }
   }
 
