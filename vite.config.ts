@@ -9,13 +9,15 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
-      // Força o lucide-react a usar a versão correta
-      "lucide-react": path.resolve(import.meta.dirname, "node_modules/lucide-react/dist/esm/index.js")
     },
   },
   optimizeDeps: {
     exclude: ['@replit/vite-plugin-runtime-error-modal', '@replit/vite-plugin-cartographer'],
-    include: ['lucide-react']
+    include: ['lucide-react'],
+    esbuildOptions: {
+      // Força o bundling de todos os arquivos
+      bundle: true,
+    }
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
@@ -29,6 +31,10 @@ export default defineConfig({
         drop_debugger: process.env.NODE_ENV === "production",
       },
     },
+    commonjsOptions: {
+      // Força transformação de CommonJS para ES modules
+      transformMixedEsModules: true,
+    },
     rollupOptions: {
       output: {
         manualChunks: {
@@ -40,6 +46,18 @@ export default defineConfig({
           ]
         },
       },
+      // Tratamento especial para lucide-react
+      plugins: [
+        {
+          name: 'lucide-react-resolver',
+          resolveId(id) {
+            if (id.includes('lucide-react') && id.includes('icons/')) {
+              // Ignora imports de ícones individuais
+              return { id: 'lucide-react', external: false };
+            }
+          }
+        }
+      ]
     },
   },
 });
