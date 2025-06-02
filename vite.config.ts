@@ -9,6 +9,8 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      // Força o lucide-react a usar a versão correta
+      "lucide-react": path.resolve(import.meta.dirname, "node_modules/lucide-react/dist/esm/index.js")
     },
   },
   optimizeDeps: {
@@ -19,7 +21,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    sourcemap: process.env.NODE_ENV !== "production",
+    sourcemap: false,
     minify: "terser",
     terserOptions: {
       compress: {
@@ -35,8 +37,7 @@ export default defineConfig({
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
             '@radix-ui/react-toast',
-          ],
-          'icons': ['lucide-react'],
+          ]
         },
       },
     },
