@@ -7,3 +7,4 @@ vite.config.ts.*
 test-*.cjs
 *.test.js
 sample.pdf
+.env

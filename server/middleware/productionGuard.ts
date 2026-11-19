@@ -1,3 +1,4 @@
+import fs from 'fs';  // LOCAL-DEV: era require('fs'), que nao existe em modulo ESM
 /**
  * Middleware de Proteção para Produção
  * Previne execução de código de teste e arquivos de desenvolvimento
@@ -40,7 +41,7 @@ export function productionGuard() {
 export function validateImports() {
   if (process.env.NODE_ENV === 'production') {
     // Limpar cache de módulos que possam conter referências a teste
-    const testModules = Object.keys(require.cache).filter(key => 
+    const testModules = Object.keys((globalThis as any).require?.cache ?? {}).filter(key => 
       key.includes('test/') || 
       key.includes('.test.') || 
       key.includes('.spec.') ||
@@ -48,17 +49,17 @@ export function validateImports() {
     );
     
     testModules.forEach(module => {
-      delete require.cache[module];
+      delete (globalThis as any).require?.cache?.[module];
     });
   }
 }
 
 // Proteção contra leitura de arquivos de teste
-const originalReadFile = require('fs').readFile;
-const originalReadFileSync = require('fs').readFileSync;
+const originalReadFile = (fs as any).readFile;
+const originalReadFileSync = (fs as any).readFileSync;
 
 if (process.env.NODE_ENV === 'production') {
-  require('fs').readFile = (path: string, ...args: any[]) => {
+  (fs as any).readFile = (path: string, ...args: any[]) => {
     if (path.includes('test/') || path.includes('05-versions-space')) {
       const callback = args[args.length - 1];
       if (typeof callback === 'function') {
@@ -69,7 +70,7 @@ if (process.env.NODE_ENV === 'production') {
     return originalReadFile(path, ...args);
   };
   
-  require('fs').readFileSync = (path: string, ...args: any[]) => {
+  (fs as any).readFileSync = (path: string, ...args: any[]) => {
     if (path.includes('test/') || path.includes('05-versions-space')) {
       throw new Error('Test files are not available in production');
     }

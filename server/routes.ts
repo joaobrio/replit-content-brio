@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./localAuth"; // LOCAL-DEV: era ./replitAuth
 import { insertContentGenerationSchema, type GenerationRequest, type GenerationResponse, type ContentVariation } from "@shared/schema";
 import { z } from "zod";
 import multer from 'multer';
@@ -358,7 +358,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
 
   // Health check endpoint (MUST be first for Replit)
-  app.get('/', (req, res) => {
+  // LOCAL-DEV: era app.get('/'), que engolia a raiz e impedia o front de aparecer.
+  app.get('/api/status', (req, res) => {
     res.status(200).json({ 
       status: 'ok', 
       message: 'Server is running',
